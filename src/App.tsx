@@ -1,12 +1,12 @@
+// src/App.tsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 
 import { queryClient } from './lib/query-client';
 import { useAuthStore, initializeAuth } from './stores/auth-simple';
-// import { useOfflineStore } from './stores/offline';
 
 // Layout components
 import AppShell from './components/layout/AppShell';
@@ -67,31 +67,15 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
-  // const { setOnlineStatus } = useOfflineStore();
 
   useEffect(() => {
-    // Initialize auth on app start
     initializeAuth();
-
-    // Set up online/offline listeners
-    // const handleOnline = () => setOnlineStatus(true);
-    // const handleOffline = () => setOnlineStatus(false);
-
-    // window.addEventListener('online', handleOnline);
-    // window.addEventListener('offline', handleOffline);
-
-    // return () => {
-    //   window.removeEventListener('online', handleOnline);
-    //   window.removeEventListener('offline', handleOffline);
-    // };
   }, []);
 
   const getDefaultRoute = () => {
     if (!isAuthenticated || !user) return '/auth/login';
-    
     switch (user.role) {
       case 'ADMIN':
-        return '/app/dashboard';
       case 'STORE_MANAGER':
         return '/app/dashboard';
       case 'WAREHOUSE_MANAGER':
@@ -110,15 +94,9 @@ function App() {
           <div className="min-h-screen bg-gray-50">
             <Routes>
               {/* Public routes */}
-              <Route 
-                path="/auth/login" 
-                element={
-                  isAuthenticated ? (
-                    <Navigate to={getDefaultRoute()} replace />
-                  ) : (
-                    <LoginPage />
-                  )
-                } 
+              <Route
+                path="/auth/login"
+                element={isAuthenticated ? <Navigate to={getDefaultRoute()} replace /> : <LoginPage />}
               />
               <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
@@ -132,7 +110,7 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                {/* Dashboard routes */}
+                {/* Dashboard */}
                 <Route
                   path="dashboard"
                   element={
@@ -144,7 +122,7 @@ function App() {
                   }
                 />
 
-                {/* Orders routes */}
+                {/* Orders */}
                 <Route
                   path="orders"
                   element={
@@ -170,7 +148,7 @@ function App() {
                   }
                 />
 
-                {/* Installations routes */}
+                {/* Installations */}
                 <Route
                   path="installations"
                   element={
@@ -196,7 +174,7 @@ function App() {
                   }
                 />
 
-                {/* Calendar route */}
+                {/* Calendar */}
                 <Route
                   path="calendar"
                   element={
@@ -206,7 +184,7 @@ function App() {
                   }
                 />
 
-                {/* Inventory routes */}
+                {/* Inventory */}
                 <Route
                   path="inventory"
                   element={
@@ -216,7 +194,7 @@ function App() {
                   }
                 />
 
-                {/* Pick Lists routes */}
+                {/* Pick Lists */}
                 <Route
                   path="picklists"
                   element={
@@ -242,7 +220,7 @@ function App() {
                   }
                 />
 
-                {/* Customers routes */}
+                {/* Customers */}
                 <Route
                   path="customers"
                   element={
@@ -268,7 +246,7 @@ function App() {
                   }
                 />
 
-                {/* Products route */}
+                {/* Products */}
                 <Route
                   path="products"
                   element={
@@ -278,7 +256,7 @@ function App() {
                   }
                 />
 
-                {/* Reports route */}
+                {/* Reports */}
                 <Route
                   path="reports"
                   element={
@@ -288,7 +266,7 @@ function App() {
                   }
                 />
 
-                {/* Admin-only routes */}
+                {/* Admin-only */}
                 <Route
                   path="admin/users"
                   element={
@@ -322,7 +300,7 @@ function App() {
                   }
                 />
 
-                {/* Audit route */}
+                {/* Audit */}
                 <Route
                   path="audit"
                   element={
@@ -350,6 +328,7 @@ function App() {
                 <Route path="jobs/:id/checklist" element={<CrewChecklist />} />
                 <Route path="jobs/:id/capture" element={<CrewCapture />} />
                 <Route path="jobs/:id/issues" element={<CrewIssues />} />
+                <Route path="issues" element={<CrewIssues />} />
                 <Route path="settings" element={<CrewSettings />} />
               </Route>
 
@@ -358,10 +337,7 @@ function App() {
               <Route path="/404" element={<NotFoundPage />} />
 
               {/* Default redirect */}
-              <Route
-                path="/"
-                element={<Navigate to={getDefaultRoute()} replace />}
-              />
+              <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
 
               {/* Catch all */}
               <Route path="*" element={<NotFoundPage />} />
@@ -372,23 +348,14 @@ function App() {
               position="top-right"
               toastOptions={{
                 duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
+                style: { background: '#363636', color: '#fff' },
                 success: {
                   duration: 3000,
-                  iconTheme: {
-                    primary: '#22c55e',
-                    secondary: '#fff',
-                  },
+                  iconTheme: { primary: '#22c55e', secondary: '#fff' },
                 },
                 error: {
                   duration: 5000,
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
-                  },
+                  iconTheme: { primary: '#ef4444', secondary: '#fff' },
                 },
               }}
             />
