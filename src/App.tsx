@@ -1,0 +1,405 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+
+import { queryClient } from './lib/query-client';
+import { useAuthStore, initializeAuth } from './stores/auth-simple';
+// import { useOfflineStore } from './stores/offline';
+
+// Layout components
+import AppShell from './components/layout/AppShell';
+import CrewShell from './components/layout/CrewShell';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import RoleGuard from './components/auth/RoleGuard';
+
+// Auth pages
+import LoginPage from './pages/auth/LoginPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+
+// Admin pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UsersPage from './pages/admin/UsersPage';
+import RolesPage from './pages/admin/RolesPage';
+import IntegrationsPage from './pages/admin/IntegrationsPage';
+import CapacitySettingsPage from './pages/admin/CapacitySettingsPage';
+
+// Manager pages
+import ManagerDashboard from './pages/manager/ManagerDashboard';
+import OrdersPage from './pages/manager/OrdersPage';
+import OrderDetailPage from './pages/manager/OrderDetailPage';
+import CreateOrderPage from './pages/manager/CreateOrderPage';
+import InstallationsPage from './pages/manager/InstallationsPage';
+import InstallationDetailPage from './pages/manager/InstallationDetailPage';
+import CreateInstallationPage from './pages/manager/CreateInstallationPage';
+import CalendarPage from './pages/manager/CalendarPage';
+import CustomersPage from './pages/manager/CustomersPage';
+import CustomerDetailPage from './pages/manager/CustomerDetailPage';
+import CreateCustomerPage from './pages/manager/CreateCustomerPage';
+
+// Warehouse pages
+import WarehouseDashboard from './pages/warehouse/WarehouseDashboard';
+import InventoryPage from './pages/warehouse/InventoryPage';
+import PickListsPage from './pages/warehouse/PickListsPage';
+import PickListDetailPage from './pages/warehouse/PickListDetailPage';
+import CreatePickListPage from './pages/warehouse/CreatePickListPage';
+import ProductsPage from './pages/warehouse/ProductsPage';
+
+// Crew pages
+import CrewHome from './pages/crew/CrewHome';
+import CrewJobs from './pages/crew/CrewJobs';
+import CrewJobDetail from './pages/crew/CrewJobDetail';
+import CrewChecklist from './pages/crew/CrewChecklist';
+import CrewCapture from './pages/crew/CrewCapture';
+import CrewIssues from './pages/crew/CrewIssues';
+import CrewSettings from './pages/crew/CrewSettings';
+
+// Shared pages
+import ReportsPage from './pages/shared/ReportsPage';
+import AuditPage from './pages/shared/AuditPage';
+import NotFoundPage from './pages/shared/NotFoundPage';
+import ForbiddenPage from './pages/shared/ForbiddenPage';
+
+// Error boundary
+import ErrorBoundary from './components/ErrorBoundary';
+
+function App() {
+  const { isAuthenticated, user } = useAuthStore();
+  // const { setOnlineStatus } = useOfflineStore();
+
+  useEffect(() => {
+    // Initialize auth on app start
+    initializeAuth();
+
+    // Set up online/offline listeners
+    // const handleOnline = () => setOnlineStatus(true);
+    // const handleOffline = () => setOnlineStatus(false);
+
+    // window.addEventListener('online', handleOnline);
+    // window.addEventListener('offline', handleOffline);
+
+    // return () => {
+    //   window.removeEventListener('online', handleOnline);
+    //   window.removeEventListener('offline', handleOffline);
+    // };
+  }, []);
+
+  const getDefaultRoute = () => {
+    if (!isAuthenticated || !user) return '/auth/login';
+    
+    switch (user.role) {
+      case 'ADMIN':
+        return '/app/dashboard';
+      case 'STORE_MANAGER':
+        return '/app/dashboard';
+      case 'WAREHOUSE_MANAGER':
+        return '/app/inventory';
+      case 'CREW':
+        return '/crew';
+      default:
+        return '/auth/login';
+    }
+  };
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
+              {/* Public routes */}
+              <Route 
+                path="/auth/login" 
+                element={
+                  isAuthenticated ? (
+                    <Navigate to={getDefaultRoute()} replace />
+                  ) : (
+                    <LoginPage />
+                  )
+                } 
+              />
+              <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
+              {/* App routes (Admin/Manager/Warehouse) */}
+              <Route
+                path="/app/*"
+                element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }
+              >
+                {/* Dashboard routes */}
+                <Route
+                  path="dashboard"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER']}>
+                      {user?.role === 'ADMIN' && <AdminDashboard />}
+                      {user?.role === 'STORE_MANAGER' && <ManagerDashboard />}
+                      {user?.role === 'WAREHOUSE_MANAGER' && <WarehouseDashboard />}
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Orders routes */}
+                <Route
+                  path="orders"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <OrdersPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="orders/:id"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <OrderDetailPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="orders/new"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <CreateOrderPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Installations routes */}
+                <Route
+                  path="installations"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER']}>
+                      <InstallationsPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="installations/:id"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER']}>
+                      <InstallationDetailPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="installations/new"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <CreateInstallationPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Calendar route */}
+                <Route
+                  path="calendar"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <CalendarPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Inventory routes */}
+                <Route
+                  path="inventory"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
+                      <InventoryPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Pick Lists routes */}
+                <Route
+                  path="picklists"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
+                      <PickListsPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="picklists/:id"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
+                      <PickListDetailPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="picklists/new"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
+                      <CreatePickListPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Customers routes */}
+                <Route
+                  path="customers"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <CustomersPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="customers/:id"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <CustomerDetailPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="customers/new"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <CreateCustomerPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Products route */}
+                <Route
+                  path="products"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
+                      <ProductsPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Reports route */}
+                <Route
+                  path="reports"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <ReportsPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Admin-only routes */}
+                <Route
+                  path="admin/users"
+                  element={
+                    <RoleGuard roles={['ADMIN']}>
+                      <UsersPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="admin/roles"
+                  element={
+                    <RoleGuard roles={['ADMIN']}>
+                      <RolesPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="admin/integrations"
+                  element={
+                    <RoleGuard roles={['ADMIN']}>
+                      <IntegrationsPage />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="admin/capacity"
+                  element={
+                    <RoleGuard roles={['ADMIN']}>
+                      <CapacitySettingsPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Audit route */}
+                <Route
+                  path="audit"
+                  element={
+                    <RoleGuard roles={['ADMIN']}>
+                      <AuditPage />
+                    </RoleGuard>
+                  }
+                />
+              </Route>
+
+              {/* Crew PWA routes */}
+              <Route
+                path="/crew/*"
+                element={
+                  <ProtectedRoute>
+                    <RoleGuard roles={['CREW']}>
+                      <CrewShell />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<CrewHome />} />
+                <Route path="jobs" element={<CrewJobs />} />
+                <Route path="jobs/:id" element={<CrewJobDetail />} />
+                <Route path="jobs/:id/checklist" element={<CrewChecklist />} />
+                <Route path="jobs/:id/capture" element={<CrewCapture />} />
+                <Route path="jobs/:id/issues" element={<CrewIssues />} />
+                <Route path="settings" element={<CrewSettings />} />
+              </Route>
+
+              {/* Error pages */}
+              <Route path="/403" element={<ForbiddenPage />} />
+              <Route path="/404" element={<NotFoundPage />} />
+
+              {/* Default redirect */}
+              <Route
+                path="/"
+                element={<Navigate to={getDefaultRoute()} replace />}
+              />
+
+              {/* Catch all */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+
+            {/* Toast notifications */}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                },
+                success: {
+                  duration: 3000,
+                  iconTheme: {
+                    primary: '#22c55e',
+                    secondary: '#fff',
+                  },
+                },
+                error: {
+                  duration: 5000,
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#fff',
+                  },
+                },
+              }}
+            />
+          </div>
+        </Router>
+
+        {/* React Query DevTools */}
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;
