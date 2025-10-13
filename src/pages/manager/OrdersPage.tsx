@@ -2,219 +2,217 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
   Search,
   Filter,
   ArrowUpDown,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Store as StoreIcon,
   Calendar as CalendarIcon,
+  User2,
+  Package,
+  Store,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-/* ------------------------------ Types ------------------------------ */
+/* ------------------------------ Local types ----------------------------- */
 type OrderStatus = 'pending' | 'confirmed' | 'cancelled';
 
 type MockOrder = {
   id: string;
-  store_id: string;
-  store_name: string;
-  customer_name: string;
-  customer_phone: string;
-  placed_at: string; // ISO
-  status: OrderStatus;
+  store: string;
+  customer: string;
   items_count: number;
-  total_weight: number; // kg
+  status: OrderStatus;
+  placed_at: string; // ISO
 };
 
-/* --------------------------- Mock generator --------------------------- */
-const STORES = [
-  { id: 'store_nicosia', name: 'Nicosia' },
-  { id: 'store_famagusta', name: 'Famagusta' },
-  { id: 'store_kyrenia', name: 'Kyrenia' },
-];
-
-function dFmt(iso: string) {
-  return new Date(iso).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+/* ------------------------------- Mock data ------------------------------ */
+function ymd(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
-
-function makeMockOrders(): MockOrder[] {
-  const now = new Date();
-  const iso = (offsetDays: number, h: number): string => {
-    const d = new Date(now);
-    d.setDate(now.getDate() + offsetDays);
-    d.setHours(h, Math.floor(Math.random() * 60), 0, 0);
+function fmt(dtIso: string) {
+  const d = new Date(dtIso);
+  return d.toLocaleString([], {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+const MOCK_ORDERS: MockOrder[] = (() => {
+  const today = new Date();
+  const iso = (offsetDay: number, hh: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - offsetDay);
+    d.setHours(hh, Math.floor(Math.random() * 50), 0, 0);
     return d.toISOString();
   };
-
   return [
     {
       id: 'ORD-10001',
-      store_id: 'store_nicosia',
-      store_name: 'Nicosia',
-      customer_name: 'Ali Demir',
-      customer_phone: '+90 533 000 0001',
-      placed_at: iso(-1, 10),
-      status: 'confirmed',
+      store: 'Store A (Nicosia)',
+      customer: 'Ali Demir',
       items_count: 5,
-      total_weight: 78,
+      status: 'confirmed',
+      placed_at: iso(0, 9),
     },
     {
       id: 'ORD-10002',
-      store_id: 'store_famagusta',
-      store_name: 'Famagusta',
-      customer_name: 'Selin Kaya',
-      customer_phone: '+90 533 000 0002',
-      placed_at: iso(0, 12),
+      store: 'Store B (Famagusta)',
+      customer: 'Selin Kaya',
+      items_count: 2,
       status: 'pending',
-      items_count: 3,
-      total_weight: 41,
+      placed_at: iso(1, 14),
     },
     {
       id: 'ORD-10003',
-      store_id: 'store_kyrenia',
-      store_name: 'Kyrenia',
-      customer_name: 'Mete Aydın',
-      customer_phone: '+90 533 000 0003',
-      placed_at: iso(-2, 14),
-      status: 'cancelled',
-      items_count: 2,
-      total_weight: 25,
+      store: 'Store C (Kyrenia)',
+      customer: 'Mete Aydın',
+      items_count: 7,
+      status: 'confirmed',
+      placed_at: iso(2, 11),
     },
     {
       id: 'ORD-10004',
-      store_id: 'store_nicosia',
-      store_name: 'Nicosia',
-      customer_name: 'Deniz Arslan',
-      customer_phone: '+90 533 000 0004',
-      placed_at: iso(0, 9),
-      status: 'confirmed',
-      items_count: 4,
-      total_weight: 64,
+      store: 'Store A (Nicosia)',
+      customer: 'Deniz Arslan',
+      items_count: 3,
+      status: 'cancelled',
+      placed_at: iso(4, 10),
     },
     {
       id: 'ORD-10005',
-      store_id: 'store_famagusta',
-      store_name: 'Famagusta',
-      customer_name: 'Ece Yıldız',
-      customer_phone: '+90 533 000 0005',
-      placed_at: iso(-3, 16),
+      store: 'Store D (Iskele)',
+      customer: 'Ece Yıldız',
+      items_count: 4,
       status: 'pending',
-      items_count: 6,
-      total_weight: 93,
+      placed_at: iso(5, 16),
     },
     {
       id: 'ORD-10006',
-      store_id: 'store_kyrenia',
-      store_name: 'Kyrenia',
-      customer_name: 'Bora Kar',
-      customer_phone: '+90 533 000 0006',
-      placed_at: iso(1, 11),
-      status: 'confirmed',
+      store: 'Store B (Famagusta)',
+      customer: 'Bora Kar',
       items_count: 1,
-      total_weight: 12,
+      status: 'confirmed',
+      placed_at: iso(6, 12),
+    },
+    {
+      id: 'ORD-10007',
+      store: 'Store C (Kyrenia)',
+      customer: 'Can Er',
+      items_count: 6,
+      status: 'confirmed',
+      placed_at: iso(7, 15),
     },
   ];
-}
+})();
 
-/* ------------------------------ Page ------------------------------ */
+/* --------------------------------- Page -------------------------------- */
 export default function OrdersPage() {
   const navigate = useNavigate();
+
+  // Filters
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<OrderStatus | 'all'>('all');
   const [store, setStore] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'placed_at' | 'customer' | 'weight'>('placed_at');
+  const [from, setFrom] = useState<string>(ymd());
+  const [to, setTo] = useState<string>(ymd());
+
+  // Sort & pagination
+  const [sortBy, setSortBy] = useState<'placed_at' | 'id' | 'customer' | 'store' | 'items_count' | 'status'>('placed_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = 8;
 
-  const data = useMemo(() => makeMockOrders(), []); // stable mock for session
+  // Derived options
+  const storeOptions = useMemo(() => {
+    const unique = Array.from(new Set(MOCK_ORDERS.map(o => o.store)));
+    return unique.sort();
+  }, []);
 
   const filtered = useMemo(() => {
-    let list = data.slice();
+    let list = MOCK_ORDERS.slice();
 
+    // Date filter (placed_at between from and to inclusive)
+    const fromD = new Date(from + 'T00:00:00');
+    const toD = new Date(to + 'T23:59:59');
+
+    list = list.filter(o => {
+      const d = new Date(o.placed_at);
+      return d >= fromD && d <= toD;
+    });
+
+    // Status & store
+    if (status !== 'all') list = list.filter(o => o.status === status);
+    if (store !== 'all') list = list.filter(o => o.store === store);
+
+    // Text search
     if (q.trim()) {
       const s = q.toLowerCase();
       list = list.filter(
         (o) =>
           o.id.toLowerCase().includes(s) ||
-          o.customer_name.toLowerCase().includes(s) ||
-          o.customer_phone.toLowerCase().includes(s) ||
-          o.store_name.toLowerCase().includes(s)
+          o.customer.toLowerCase().includes(s) ||
+          o.store.toLowerCase().includes(s)
       );
     }
-    if (status !== 'all') list = list.filter((o) => o.status === status);
-    if (store !== 'all') list = list.filter((o) => o.store_id === store);
 
+    // Sort
     list.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
       switch (sortBy) {
         case 'placed_at':
-          return sortDir === 'asc'
-            ? a.placed_at.localeCompare(b.placed_at)
-            : b.placed_at.localeCompare(a.placed_at);
+          return dir * (a.placed_at.localeCompare(b.placed_at));
+        case 'id':
+          return dir * a.id.localeCompare(b.id);
         case 'customer':
-          return sortDir === 'asc'
-            ? a.customer_name.localeCompare(b.customer_name)
-            : b.customer_name.localeCompare(a.customer_name);
-        case 'weight':
-          return sortDir === 'asc' ? a.total_weight - b.total_weight : b.total_weight - a.total_weight;
+          return dir * a.customer.localeCompare(b.customer);
+        case 'store':
+          return dir * a.store.localeCompare(b.store);
+        case 'items_count':
+          return dir * (a.items_count - b.items_count);
+        case 'status':
+          return dir * (statusRank(a.status) - statusRank(b.status));
       }
     });
 
     return list;
-  }, [data, q, status, store, sortBy, sortDir]);
+  }, [q, status, store, from, to, sortBy, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
-  const counts = useMemo(() => {
-    return {
-      all: data.length,
-      pending: data.filter((o) => o.status === 'pending').length,
-      confirmed: data.filter((o) => o.status === 'confirmed').length,
-      cancelled: data.filter((o) => o.status === 'cancelled').length,
-    };
-  }, [data]);
-
-  const toggleSort = (key: typeof sortBy) => {
-    if (sortBy === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(key);
+  const toggleSort = (k: typeof sortBy) => {
+    if (sortBy === k) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else {
+      setSortBy(k);
       setSortDir('asc');
     }
   };
 
-  const goDetail = (id: string) => navigate(`/app/orders/${id}`);
+  const openDetail = (id: string) => navigate(`/app/orders/${id}`);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-          <p className="mt-1 text-sm text-gray-500">Imported sales orders to schedule installations.</p>
-        </div>
-        <button
-          onClick={() => navigate('/app/orders/new')}
-          className="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create order
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Read-only list imported from external system. Use orders to plan installations.
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-white p-3 shadow-sm md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border bg-white p-3 shadow-sm md:grid-cols-6">
         <div className="md:col-span-2">
           <label className="mb-1 block text-xs text-gray-600">Search</label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               className="input w-full pl-8"
-              placeholder="Order ID, customer, phone, store…"
+              placeholder="Order ID, customer, store…"
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -247,7 +245,7 @@ export default function OrdersPage() {
         <div>
           <label className="mb-1 block text-xs text-gray-600">Store</label>
           <div className="relative">
-            <StoreIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <Store className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <select
               className="input w-full pl-8"
               value={store}
@@ -257,60 +255,46 @@ export default function OrdersPage() {
               }}
             >
               <option value="all">All stores</option>
-              {STORES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+              {storeOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
                 </option>
               ))}
             </select>
           </div>
         </div>
-      </div>
 
-      {/* Status quick filters */}
-      <div className="flex flex-wrap gap-2">
-        <QuickStat
-          label="All"
-          value={counts.all}
-          active={status === 'all'}
-          onClick={() => {
-            setStatus('all');
-            setPage(1);
-          }}
-        />
-        <QuickStat
-          icon={<Clock className="h-3.5 w-3.5" />}
-          tone="amber"
-          label="Pending"
-          value={counts.pending}
-          active={status === 'pending'}
-          onClick={() => {
-            setStatus('pending');
-            setPage(1);
-          }}
-        />
-        <QuickStat
-          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-          tone="emerald"
-          label="Confirmed"
-          value={counts.confirmed}
-          active={status === 'confirmed'}
-          onClick={() => {
-            setStatus('confirmed');
-            setPage(1);
-          }}
-        />
-        <QuickStat
-          icon={<XCircle className="h-3.5 w-3.5" />}
-          tone="rose"
-          label="Cancelled"
-          value={counts.cancelled}
-          active={status === 'cancelled'}
-          onClick={() => {
-            setStatus('cancelled');
-            setPage(1);
-          }}
-        />
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">From</label>
+          <div className="relative">
+            <CalendarIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="date"
+              className="input w-full pl-8"
+              value={from}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">To</label>
+          <div className="relative">
+            <CalendarIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+            <input
+              type="date"
+              className="input w-full pl-8"
+              value={to}
+              onChange={(e) => {
+                setTo(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Table */}
@@ -318,38 +302,19 @@ export default function OrdersPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600">
             <tr>
-              <ThButton
-                className="w-36"
-                label="Placed at"
-                active={sortBy === 'placed_at'}
-                dir={sortDir}
-                onClick={() => toggleSort('placed_at')}
-              />
-              <th className="px-3 py-2 text-left">Order</th>
-              <ThButton
-                label="Customer"
-                active={sortBy === 'customer'}
-                dir={sortDir}
-                onClick={() => toggleSort('customer')}
-              />
-              <th className="px-3 py-2 text-left">Store</th>
-              <ThButton
-                className="w-28 text-right"
-                label="Weight"
-                active={sortBy === 'weight'}
-                dir={sortDir}
-                onClick={() => toggleSort('weight')}
-              />
-              <th className="w-28 px-3 py-2 text-left">Status</th>
+              <Th label="Placed" active={sortBy === 'placed_at'} dir={sortDir} onClick={() => toggleSort('placed_at')} />
+              <Th label="Order" active={sortBy === 'id'} dir={sortDir} onClick={() => toggleSort('id')} />
+              <Th label="Customer" active={sortBy === 'customer'} dir={sortDir} onClick={() => toggleSort('customer')} />
+              <Th label="Store" active={sortBy === 'store'} dir={sortDir} onClick={() => toggleSort('store')} />
+              <Th label="Items" active={sortBy === 'items_count'} dir={sortDir} onClick={() => toggleSort('items_count')} className="w-24" />
+              <Th label="Status" active={sortBy === 'status'} dir={sortDir} onClick={() => toggleSort('status')} className="w-36" />
               <th className="w-24 px-3 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
-                  No orders found with current filters.
-                </td>
+                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">No orders match the filters.</td>
               </tr>
             ) : (
               paged.map((o) => (
@@ -357,27 +322,35 @@ export default function OrdersPage() {
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1 text-xs text-gray-600">
                       <CalendarIcon className="h-3.5 w-3.5" />
-                      {dFmt(o.placed_at)}
+                      {fmt(o.placed_at)}
                     </div>
                   </td>
                   <td className="px-3 py-2">
                     <div className="font-medium text-gray-900">{o.id}</div>
-                    <div className="text-xs text-gray-500">{o.items_count} item(s)</div>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="font-medium text-gray-900">{o.customer_name}</div>
-                    <div className="text-xs text-gray-500">{o.customer_phone}</div>
+                    <div className="flex items-center gap-2">
+                      <User2 className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-900">{o.customer}</span>
+                    </div>
                   </td>
-                  <td className="px-3 py-2">{o.store_name}</td>
-                  <td className="px-3 py-2 text-right">{o.total_weight} kg</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Store className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-900">{o.store}</span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] text-gray-700">
+                      <Package className="h-3.5 w-3.5" />
+                      {o.items_count}
+                    </div>
+                  </td>
                   <td className="px-3 py-2">
                     <StatusPill status={o.status} />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => goDetail(o.id)}
-                      className="text-primary-600 hover:text-primary-800"
-                    >
+                    <button onClick={() => openDetail(o.id)} className="text-primary-600 hover:text-primary-800">
                       View
                     </button>
                   </td>
@@ -397,10 +370,7 @@ export default function OrdersPage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className={cn(
-                'rounded-md border px-3 py-1.5',
-                page === 1 ? 'opacity-50' : 'hover:bg-gray-50'
-              )}
+              className={cn('rounded-md border px-3 py-1.5', page === 1 ? 'opacity-50' : 'hover:bg-gray-50')}
             >
               Prev
             </button>
@@ -410,10 +380,7 @@ export default function OrdersPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className={cn(
-                'rounded-md border px-3 py-1.5',
-                page === totalPages ? 'opacity-50' : 'hover:bg-gray-50'
-              )}
+              className={cn('rounded-md border px-3 py-1.5', page === totalPages ? 'opacity-50' : 'hover:bg-gray-50')}
             >
               Next
             </button>
@@ -424,25 +391,27 @@ export default function OrdersPage() {
   );
 }
 
-/* ------------------------------ Bits ------------------------------ */
-function StatusPill({ status }: { status: OrderStatus }) {
-  const tone =
-    status === 'confirmed'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-      : status === 'pending'
-      ? 'border-amber-200 bg-amber-50 text-amber-700'
-      : 'border-rose-200 bg-rose-50 text-rose-700';
-  const Icon = status === 'confirmed' ? CheckCircle2 : status === 'pending' ? Clock : XCircle;
+/* --------------------------------- Bits -------------------------------- */
+function statusRank(s: OrderStatus) {
+  const order: OrderStatus[] = ['pending', 'confirmed', 'cancelled'];
+  return order.indexOf(s);
+}
 
+function StatusPill({ status }: { status: OrderStatus }) {
+  const styles: Record<OrderStatus, string> = {
+    pending: 'border-amber-200 bg-amber-50 text-amber-700',
+    confirmed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    cancelled: 'border-rose-200 bg-rose-50 text-rose-700',
+  };
+  const label = status === 'confirmed' ? 'Confirmed' : status === 'pending' ? 'Pending' : 'Cancelled';
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] capitalize', tone)}>
-      <Icon className="h-3.5 w-3.5" />
-      {status}
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]', styles[status])}>
+      {label}
     </span>
   );
 }
 
-function ThButton({
+function Th({
   label,
   onClick,
   active,
@@ -459,51 +428,11 @@ function ThButton({
     <th className={cn('px-3 py-2 text-left font-semibold text-gray-700', className)}>
       <button
         onClick={onClick}
-        className={cn(
-          'inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-gray-100',
-          active && 'text-primary-700'
-        )}
+        className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-gray-100', active && 'text-primary-700')}
         title="Sort"
       >
         {label} <ArrowUpDown className={cn('h-3.5 w-3.5', active && dir === 'asc' && 'rotate-180')} />
       </button>
     </th>
-  );
-}
-
-function QuickStat({
-  label,
-  value,
-  active,
-  onClick,
-  icon,
-  tone = 'gray',
-}: {
-  label: string;
-  value: number;
-  active?: boolean;
-  onClick?: () => void;
-  icon?: React.ReactNode;
-  tone?: 'gray' | 'amber' | 'emerald' | 'rose';
-}) {
-  const tones: Record<string, string> = {
-    gray: 'border-gray-200 bg-white text-gray-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    rose: 'border-rose-200 bg-rose-50 text-rose-700',
-  };
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm',
-        tones[tone],
-        active && 'ring-2 ring-primary-200'
-      )}
-    >
-      {icon}
-      <span className="font-medium">{label}</span>
-      <span className="rounded-full bg-white px-2 py-0.5 text-xs text-gray-700">{value}</span>
-    </button>
   );
 }

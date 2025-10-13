@@ -1,350 +1,379 @@
 // src/pages/crew/CrewHome.tsx
 import { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  CalendarDays,
-  MapPin,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  Camera,
-  ClipboardList,
-  AlertTriangle,
-  ChevronRight,
-  Play,
-} from 'lucide-react';
-import { useAuthStore } from '../../stores/auth-simple';
+import { Link } from 'react-router-dom';
+import { CalendarDays, MapPin, Clock, ClipboardCheck, User2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-/** ---------------------- Mock data (no API yet) ---------------------- */
-type CrewJobStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'failed';
+type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'failed';
 
 type CrewJob = {
   id: string;
-  order_id: string;
-  start: string;     // ISO
-  end: string;       // ISO
   customer: string;
-  phone?: string;
   address: string;
-  zone: 'Nicosia' | 'Famagusta' | 'Kyrenia' | 'Morphou' | 'Iskele';
-  status: CrewJobStatus;
-  notes?: string;
+  start: string; // ISO
+  end: string;   // ISO
+  zone: string;
+  status: JobStatus;
 };
 
-function mockTodayJobs(): CrewJob[] {
-  const day = new Date();
-  const todayISO = (h: number, m = 0) => {
-    const d = new Date(day);
+function fmtTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function startOfWeek(d = new Date()) {
+  // Monday first
+  const day = d.getDay(); // 0..6 (Sun..Sat)
+  const diff = (day + 6) % 7;
+  const res = new Date(d);
+  res.setDate(d.getDate() - diff);
+  res.setHours(0, 0, 0, 0);
+  return res;
+}
+function endOfWeek(d = new Date()) {
+  const s = startOfWeek(d);
+  const e = new Date(s);
+  e.setDate(s.getDate() + 6);
+  e.setHours(23, 59, 59, 999);
+  return e;
+}
+function dayKey(d: Date) {
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+const MOCK_JOBS: CrewJob[] = (() => {
+  const base = new Date();
+  const at = (offsetDay: number, h: number, m = 0) => {
+    const d = new Date(base);
+    d.setDate(d.getDate() + offsetDay);
     d.setHours(h, m, 0, 0);
     return d.toISOString();
   };
   return [
+    // Active today
     {
-      id: 'inst-3001',
-      order_id: 'ORD-10291',
-      start: todayISO(9),
-      end: todayISO(10, 30),
-      customer: 'Ali Demir',
-      phone: '0533 555 12 34',
-      address: 'Atatürk Cad. No:18, Nicosia',
-      zone: 'Nicosia',
-      status: 'in_progress',
-      notes: 'Flat pack wardrobe + 2 chairs',
-    },
-    {
-      id: 'inst-3002',
-      order_id: 'ORD-10295',
-      start: todayISO(12),
-      end: todayISO(13, 30),
+      id: 'inst-6102',
       customer: 'Selin Kaya',
       address: 'Ece Sk. 12, Famagusta',
+      start: at(0, 12, 0),
+      end: at(0, 13, 30),
       zone: 'Famagusta',
-      status: 'accepted',
-      notes: 'Kitchen island assembly',
+      status: 'in_progress',
     },
+    // Completed earlier this week
     {
-      id: 'inst-3003',
-      order_id: 'ORD-10302',
-      start: todayISO(15),
-      end: todayISO(16, 30),
+      id: 'inst-6101',
+      customer: 'Ali Demir',
+      address: 'Atatürk Cad. 18, Nicosia',
+      start: at(-1, 9, 0),
+      end: at(-1, 11, 0),
+      zone: 'Nicosia',
+      status: 'completed',
+    },
+    // Scheduled later today
+    {
+      id: 'inst-6103',
       customer: 'Mete Aydın',
       address: 'Zeytinlik Mah., Kyrenia',
+      start: at(0, 15, 0),
+      end: at(0, 17, 0),
       zone: 'Kyrenia',
-      status: 'pending',
-      notes: 'Sofa & coffee table',
+      status: 'scheduled',
+    },
+    // Failed earlier this week
+    {
+      id: 'inst-6097',
+      customer: 'Bora Kar',
+      address: 'Şht. Sk. 5, Morphou',
+      start: at(-2, 10, 0),
+      end: at(-2, 12, 0),
+      zone: 'Morphou',
+      status: 'failed',
+    },
+    // Another scheduled later this week
+    {
+      id: 'inst-6104',
+      customer: 'Ece Yıldız',
+      address: 'Yenişehir Mh., Nicosia',
+      start: at(2, 10, 30),
+      end: at(2, 12, 0),
+      zone: 'Nicosia',
+      status: 'scheduled',
     },
   ];
-}
+})();
 
-/** ---------------------- Small helpers ---------------------- */
-function formatTimeRange(startISO: string, endISO: string) {
-  const s = new Date(startISO);
-  const e = new Date(endISO);
-  const fmt = (d: Date) =>
-    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  return `${fmt(s)}–${fmt(e)}`;
-}
-
-function statusStyle(s: CrewJobStatus) {
-  switch (s) {
-    case 'completed':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-    case 'in_progress':
-      return 'border-blue-200 bg-blue-50 text-blue-700';
-    case 'accepted':
-      return 'border-amber-200 bg-amber-50 text-amber-700';
-    case 'failed':
-      return 'border-red-200 bg-red-50 text-red-700';
-    default:
-      return 'border-gray-200 bg-gray-50 text-gray-700';
-  }
-}
-
-function statusLabel(s: CrewJobStatus) {
-  switch (s) {
-    case 'completed':
-      return 'Completed';
-    case 'in_progress':
-      return 'In progress';
-    case 'accepted':
-      return 'Accepted';
-    case 'failed':
-      return 'Failed';
-    default:
-      return 'Pending';
-  }
-}
-
-/** ---------------------- Component ---------------------- */
 export default function CrewHome() {
-  const { user } = useAuthStore();
-  const navigate = useNavigate();
-  const jobs = useMemo(() => mockTodayJobs(), []);
+  const now = new Date();
+  const weekStart = startOfWeek(now);
+  const weekEnd = endOfWeek(now);
 
-  const inProgress = jobs.filter((j) => j.status === 'in_progress').length;
-  const remaining = jobs.filter((j) => j.status === 'accepted' || j.status === 'pending').length;
-  const completed = jobs.filter((j) => j.status === 'completed').length;
+  // Build Mon..Sun strip
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const label = d.toLocaleDateString([], { weekday: 'short' }); // Mon/Tue...
+      return { date: d, label, key: dayKey(d), isToday: isSameDay(d, now) };
+    });
+  }, [weekStart, now]);
 
-  const firstActionable = jobs.find((j) => j.status === 'accepted' || j.status === 'pending');
+  // Week jobs & group by day
+  const weekJobs = useMemo(
+    () => MOCK_JOBS.filter((j) => {
+      const s = new Date(j.start);
+      return s >= weekStart && s <= weekEnd;
+    }),
+    [weekStart, weekEnd]
+  );
+
+  const jobsByDay = useMemo(() => {
+    const map: Record<string, CrewJob[]> = {};
+    for (const w of weekDays) map[w.key] = [];
+    for (const j of weekJobs) {
+      const s = new Date(j.start);
+      const k = dayKey(s);
+      if (!map[k]) map[k] = [];
+      map[k].push(j);
+    }
+    return map;
+  }, [weekDays, weekJobs]);
+
+  const activeJob = useMemo(() => weekJobs.find((j) => j.status === 'in_progress') || null, [weekJobs]);
+
+  const todayJobs = useMemo(() => {
+    const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
+    const d1 = new Date(now); d1.setHours(23, 59, 59, 999);
+    return weekJobs.filter((j) => {
+      const s = new Date(j.start);
+      return s >= d0 && s <= d1;
+    });
+  }, [weekJobs, now]);
+
+  const summary = {
+    weekTotal: weekJobs.length,
+    active: weekJobs.filter((j) => j.status === 'in_progress').length,
+    done: weekJobs.filter((j) => j.status === 'completed').length,
+    issues: weekJobs.filter((j) => j.status === 'failed').length,
+  };
 
   return (
-    <div className="mx-auto h-full w-full max-w-screen-sm">
-      {/* Greeting / header */}
-      <header className="sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-gray-500">Welcome</div>
-              <div className="text-lg font-semibold text-gray-900">{user?.name || 'Crew Member'}</div>
-            </div>
-            <Link
-              to="/crew/jobs"
-              className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              View Jobs
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Link>
+    // Narrow, centered; safe padding for CrewShell bottom bar
+    <div className="mx-auto w-full max-w-md px-3 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-3">
+      {/* Header */}
+      <div className="mb-3">
+        <h1 className="text-lg font-bold text-gray-900">Crew Home</h1>
+        <p className="text-xs text-gray-500">Your current job and weekly summary</p>
+      </div>
+
+      {/* Mini Weekly Calendar */}
+      <div className="mb-3 rounded-xl border bg-white p-2 shadow-sm">
+        <div className="mb-2 flex items-center justify-between px-1">
+          <div className="text-sm font-semibold text-gray-900">This Week</div>
+          <div className="text-[11px] text-gray-500">
+            {weekStart.toLocaleDateString()} – {weekEnd.toLocaleDateString()}
           </div>
         </div>
-      </header>
 
-      <main className="space-y-4 p-4">
-        {/* Today quick stats */}
-        <section className="grid grid-cols-3 gap-2">
-          <Stat
-            label="In Progress"
-            value={inProgress}
-            tone="blue"
-            icon={<Loader2 className="h-4 w-4" />}
-          />
-          <Stat
-            label="Remaining"
-            value={remaining}
-            tone="amber"
-            icon={<Clock className="h-4 w-4" />}
-          />
-          <Stat
-            label="Done"
-            value={completed}
-            tone="emerald"
-            icon={<CheckCircle2 className="h-4 w-4" />}
-          />
-        </section>
-
-        {/* Next action card */}
-        {firstActionable && (
-          <section className="rounded-xl border bg-white p-3 shadow-sm">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Play className="h-4 w-4 text-primary-600" />
-                <h3 className="text-sm font-semibold text-gray-900">Next job</h3>
-              </div>
-              <span
+        <div className="grid grid-cols-7 gap-1">
+          {weekDays.map((d) => (
+            <div key={d.key} className="flex flex-col items-center">
+              <div
                 className={cn(
-                  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
-                  statusStyle(firstActionable.status)
+                  'rounded-full px-2 py-0.5 text-[10px]',
+                  d.isToday ? 'bg-primary-600 text-white' : 'text-gray-600'
                 )}
               >
-                {statusLabel(firstActionable.status)}
+                {d.label}
+              </div>
+              <div
+                className={cn(
+                  'mt-1 flex h-6 w-6 items-center justify-center rounded-full text-xs',
+                  d.isToday ? 'bg-primary-100 text-primary-700' : 'text-gray-700'
+                )}
+              >
+                {d.date.getDate()}
+              </div>
+              {/* colored sticks under each day */}
+              <div className="mt-1 flex w-full flex-col items-center gap-0.5">
+                {(jobsByDay[d.key] || []).slice(0, 4).map((j) => (
+                  <div
+                    key={j.id}
+                    title={`${j.customer} • ${fmtTime(j.start)}-${fmtTime(j.end)}`}
+                    className={cn('h-1.5 w-5 rounded-full', statusColor(j.status))}
+                  />
+                ))}
+                {(jobsByDay[d.key] || []).length > 4 && (
+                  <div className="text-[10px] text-gray-500">
+                    +{(jobsByDay[d.key] || []).length - 4}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Centered Legend */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-center">
+          <Legend color="bg-sky-400" label="Scheduled" />
+          <Legend color="bg-amber-500" label="Active" />
+          <Legend color="bg-emerald-500" label="Done" />
+          <Legend color="bg-rose-500" label="Issue" />
+        </div>
+      </div>
+
+      {/* Summary cards (This Week / Active / Done / Issues) */}
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        <SummaryCard label="This Week" value={summary.weekTotal} />
+        <SummaryCard label="Active" value={summary.active} />
+        <SummaryCard label="Done" value={summary.done} />
+        <SummaryCard label="Issues" value={summary.issues} />
+      </div>
+
+      {/* Current Active Job */}
+      <section className="mb-4">
+        <h2 className="mb-2 text-sm font-semibold text-gray-900">Current Active Job</h2>
+        {activeJob ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 shadow-sm">
+            <div className="mb-1 flex items-center justify-between">
+              <div className="text-sm font-semibold text-gray-900">{activeJob.customer}</div>
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                In progress
               </span>
             </div>
 
-            <JobCompact job={firstActionable} />
-
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <Link
-                to={`/crew/jobs/${firstActionable.id}`}
-                className="btn-soft"
-              >
-                Open
-              </Link>
-              <Link to={`/crew/jobs/${firstActionable.id}/checklist`} className="btn-soft">
-                <ClipboardList className="mr-1 h-4 w-4" />
-                Checklist
-              </Link>
-              <Link to={`/crew/jobs/${firstActionable.id}/capture`} className="btn-soft">
-                <Camera className="mr-1 h-4 w-4" />
-                Photos
-              </Link>
+            <div className="mt-1 grid grid-cols-1 gap-1 text-[12px] text-gray-700">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-gray-500" />
+                <span>
+                  {fmtTime(activeJob.start)} – {fmtTime(activeJob.end)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-gray-500" />
+                <span>{activeJob.zone}</span>
+              </div>
+              <div className="line-clamp-2 text-gray-600">{activeJob.address}</div>
+              <div className="flex items-center gap-1.5 text-gray-600">
+                <User2 className="h-3.5 w-3.5 text-gray-500" />
+                <span>Job ID: {activeJob.id}</span>
+              </div>
             </div>
-          </section>
-        )}
 
-        {/* Today’s schedule (mobile friendly list) */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Today’s schedule</h3>
-            <div className="text-xs text-gray-500 inline-flex items-center">
-              <CalendarDays className="mr-1 h-3.5 w-3.5" />
-              {new Date().toLocaleDateString()}
+            <div className="mt-3">
+              <Link
+                to={`/crew/jobs/${activeJob.id}/checklist`}
+                className="inline-flex w-full items-center justify-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              >
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                Open Checklist
+              </Link>
             </div>
           </div>
+        ) : (
+          <div className="rounded-xl border bg-white p-3 text-sm text-gray-500 shadow-sm">
+            No job currently active.
+          </div>
+        )}
+      </section>
 
-          {jobs.map((job) => (
-            <button
-              key={job.id}
-              onClick={() => navigate(`/crew/jobs/${job.id}`)}
-              className="w-full rounded-lg border bg-white p-3 text-left shadow-sm active:scale-[0.99] transition"
-            >
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <div className="font-medium text-gray-900">{job.customer}</div>
-                    <span
-                      className={cn(
-                        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
-                        statusStyle(job.status)
-                      )}
-                    >
-                      {statusLabel(job.status)}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{formatTimeRange(job.start, job.end)}</span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span className="truncate">{job.address} • {job.zone}</span>
-                  </div>
-                  {job.notes && (
-                    <div className="mt-1 text-xs text-gray-500 line-clamp-2">
-                      {job.notes}
-                    </div>
-                  )}
-                </div>
-                <ChevronRight className="ml-2 h-5 w-5 text-gray-400" />
-              </div>
-            </button>
-          ))}
-        </section>
-
-        {/* Quick links */}
-        <section className="grid grid-cols-3 gap-2">
-          <Link to="/crew/jobs" className="quick-tile">
-            <ClipboardList className="h-5 w-5" />
-            <span className="mt-1 text-xs">Jobs</span>
-          </Link>
-          <Link to="/crew/jobs/inst-3001/capture" className="quick-tile">
-            <Camera className="h-5 w-5" />
-            <span className="mt-1 text-xs">Capture</span>
-          </Link>
-          <Link to="/crew/issues" className="quick-tile">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="mt-1 text-xs">Issues</span>
-          </Link>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-/** ---------------------- UI bits ---------------------- */
-function Stat({
-  label,
-  value,
-  icon,
-  tone, // 'blue' | 'amber' | 'emerald'
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  tone: 'blue' | 'amber' | 'emerald';
-}) {
-  const toneRing =
-    tone === 'blue'
-      ? 'bg-blue-100 text-blue-700'
-      : tone === 'amber'
-      ? 'bg-amber-100 text-amber-700'
-      : 'bg-emerald-100 text-emerald-700';
-
-  return (
-    <div className="rounded-xl border bg-white p-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className={cn('flex h-7 w-7 items-center justify-center rounded-full', toneRing)}>
-          {icon}
+      {/* Today’s Jobs (excluding active to avoid duplication) */}
+      <section className="rounded-xl border bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b px-3 py-2">
+          <CalendarDays className="h-4 w-4 text-gray-500" />
+          <div className="text-sm font-semibold text-gray-900">Today’s Jobs</div>
         </div>
-        <div className="text-lg font-semibold text-gray-900">{value}</div>
-      </div>
-      <div className="mt-1 text-[11px] uppercase tracking-wide text-gray-500">{label}</div>
+
+        {todayJobs.filter((j) => j.id !== activeJob?.id).length === 0 ? (
+          <div className="p-5 text-center text-sm text-gray-500">No other jobs today.</div>
+        ) : (
+          <ul className="divide-y">
+            {todayJobs
+              .filter((j) => j.id !== activeJob?.id)
+              .map((j) => (
+                <li key={j.id} className="px-3 py-3">
+                  <Link to={`/crew/jobs/${j.id}`} className="block">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-gray-900">
+                          {j.customer}
+                          <span className="ml-2 text-xs font-normal text-gray-500">#{j.id}</span>
+                        </div>
+                        <div className="mt-1 grid grid-cols-3 gap-2 text-[11px] text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {fmtTime(j.start)} – {fmtTime(j.end)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {j.zone}
+                          </span>
+                          <span className="truncate">{j.address}</span>
+                        </div>
+                      </div>
+                      <StatusPill status={j.status} />
+                    </div>
+                  </Link>
+                </li>
+              ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
 
-function JobCompact({ job }: { job: { id: string; order_id: string; start: string; end: string; customer: string; address: string; zone: string } }) {
+/* ------------------------------ UI bits ------------------------------ */
+
+function SummaryCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg border bg-gray-50 p-3">
-      <div className="text-sm font-medium text-gray-900">{job.customer}</div>
-      <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-        <Clock className="h-3.5 w-3.5" />
-        <span>{formatTimeRange(job.start, job.end)}</span>
-      </div>
-      <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-        <MapPin className="h-3.5 w-3.5" />
-        <span className="truncate">{job.address} • {job.zone}</span>
-      </div>
-      <div className="mt-1 text-[11px] text-gray-500">Order: {job.order_id}</div>
+    <div className="rounded-lg border bg-white px-2.5 py-2 text-center shadow-sm">
+      <div className="text-[11px] text-gray-500">{label}</div>
+      <div className="text-base font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
 
-/** ---------------------- Lightweight utility classes ----------------------
- * These rely on your Tailwind setup. If you don’t have `.btn-soft` or `.quick-tile`,
- * they’re included here as composition helpers.
- */
-declare module 'react' {
-  // allow className on ReactNode used above; not strictly necessary but keeps TS calm in some setups
-  interface Attributes {
-    className?: string;
+function StatusPill({ status }: { status: JobStatus }) {
+  const tone: Record<JobStatus, string> = {
+    scheduled: 'border-sky-200 bg-sky-50 text-sky-700',
+    in_progress: 'border-amber-200 bg-amber-50 text-amber-700',
+    completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    failed: 'border-rose-200 bg-rose-50 text-rose-700',
+  };
+  const label =
+    status === 'in_progress'
+      ? 'In progress'
+      : status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+  return (
+    <span className={cn('ml-3 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]', tone[status])}>
+      {label}
+    </span>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-gray-600">
+      <span className={cn('inline-block h-1.5 w-4 rounded-full', color)} />
+      {label}
+    </span>
+  );
+}
+
+function statusColor(s: JobStatus) {
+  switch (s) {
+    case 'scheduled':
+      return 'bg-sky-400';
+    case 'in_progress':
+      return 'bg-amber-500';
+    case 'completed':
+      return 'bg-emerald-500';
+    case 'failed':
+      return 'bg-rose-500';
+    default:
+      return 'bg-gray-300';
   }
 }
-
-// Soft button style for compact actions
-// Add to globals if you prefer; kept inline for drop-in ease
-// .btn-soft could also be a component; using utility classes directly here:
-const _noop = undefined;
-// tailwind helpers via @apply (documented only)
-// .btn-soft { @apply inline-flex items-center justify-center rounded-md border px-3 py-2 text-xs text-gray-700 hover:bg-gray-50; }
-// .quick-tile { @apply flex flex-col items-center justify-center rounded-xl border bg-white p-3 text-gray-700 shadow-sm active:scale-[0.99] hover:bg-gray-50; }

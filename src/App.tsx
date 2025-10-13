@@ -3,16 +3,17 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { queryClient } from './lib/query-client';
 import { useAuthStore, initializeAuth } from './stores/auth-simple';
 
-// Layout components
+// Layout & guards
 import AppShell from './components/layout/AppShell';
 import CrewShell from './components/layout/CrewShell';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RoleGuard from './components/auth/RoleGuard';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
@@ -62,14 +63,40 @@ import AuditPage from './pages/shared/AuditPage';
 import NotFoundPage from './pages/shared/NotFoundPage';
 import ForbiddenPage from './pages/shared/ForbiddenPage';
 
-// Error boundary
-import ErrorBoundary from './components/ErrorBoundary';
+// Dev-only controls (draggable role switcher + RQ position helper)
+import DevControls from './dev/DevControls';
+
+type DevtoolsCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
 
+  // Initialize auth once
   useEffect(() => {
     initializeAuth();
+  }, []);
+
+  // React Query Devtools position (persisted by DevControls)
+  const [rqPosition, setRqPosition] = useState<DevtoolsCorner>('bottom-right');
+  useEffect(() => {
+    const KEY = 'DEV_RQ_POS';
+    const load = () => {
+      const v = localStorage.getItem(KEY) as DevtoolsCorner | null;
+      if (v === 'top-left' || v === 'top-right' || v === 'bottom-left' || v === 'bottom-right') {
+        setRqPosition(v);
+      }
+    };
+    load();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === KEY && e.newValue) {
+        const v = e.newValue as DevtoolsCorner;
+        if (v === 'top-left' || v === 'top-right' || v === 'bottom-left' || v === 'bottom-right') {
+          setRqPosition(v);
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   const getDefaultRoute = () => {
@@ -122,7 +149,7 @@ function App() {
                   }
                 />
 
-                {/* Orders */}
+                {/* Orders (read-only, from external API) */}
                 <Route
                   path="orders"
                   element={
@@ -139,6 +166,7 @@ function App() {
                     </RoleGuard>
                   }
                 />
+                {/* Keeping new order route if you still want to test the form; remove if not needed */}
                 <Route
                   path="orders/new"
                   element={
@@ -311,7 +339,7 @@ function App() {
                 />
               </Route>
 
-              {/* Crew PWA routes */}
+              {/* Crew PWA */}
               <Route
                 path="/crew/*"
                 element={
@@ -332,14 +360,10 @@ function App() {
                 <Route path="settings" element={<CrewSettings />} />
               </Route>
 
-              {/* Error pages */}
+              {/* Errors & redirects */}
               <Route path="/403" element={<ForbiddenPage />} />
               <Route path="/404" element={<NotFoundPage />} />
-
-              {/* Default redirect */}
               <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
-
-              {/* Catch all */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
 
@@ -349,21 +373,18 @@ function App() {
               toastOptions={{
                 duration: 4000,
                 style: { background: '#363636', color: '#fff' },
-                success: {
-                  duration: 3000,
-                  iconTheme: { primary: '#22c55e', secondary: '#fff' },
-                },
-                error: {
-                  duration: 5000,
-                  iconTheme: { primary: '#ef4444', secondary: '#fff' },
-                },
+                success: { duration: 3000, iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+                error: { duration: 5000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
               }}
             />
           </div>
+
+          {/* Dev-only controls */}
+          {import.meta.env.DEV && <DevControls />}
         </Router>
 
-        {/* React Query DevTools */}
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        {/* React Query DevTools (movable) */}
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} position={rqPosition} />}
       </QueryClientProvider>
     </ErrorBoundary>
   );

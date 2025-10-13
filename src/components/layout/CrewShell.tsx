@@ -1,12 +1,9 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import type { UserRole } from '@/types';
-import { setMockRole, clearMock, applyMockFromStorage } from '../../dev/mockAuth';
 
 import {
   Home,
   ClipboardList,
-  Camera,
   AlertTriangle,
   Settings as SettingsIcon,
   Wifi,
@@ -28,46 +25,9 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { name: 'Home', href: '/crew', icon: Home },
   { name: 'Jobs', href: '/crew/jobs', icon: ClipboardList },
-  { name: 'Camera', href: '/crew/capture', icon: Camera },
   { name: 'Issues', href: '/crew/issues', icon: AlertTriangle },
   { name: 'Settings', href: '/crew/settings', icon: SettingsIcon },
 ];
-
-// Inline, dev-only role switcher
-function DevRoleSwitcherInline() {
-  useEffect(() => {
-    if (import.meta.env.DEV) applyMockFromStorage();
-  }, []);
-  if (!import.meta.env.DEV) return null;
-
-  const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER', 'CREW'];
-
-  return (
-    <div className="fixed bottom-4 right-4 z-50 rounded-xl border border-gray-200 bg-white/95 shadow px-3 py-2">
-      <div className="text-[11px] font-semibold text-gray-600 mb-1">Dev Role</div>
-      <div className="flex gap-1 flex-wrap">
-        {ROLES.map((r) => (
-          <button
-            key={r}
-            onClick={() => setMockRole(r)}
-            className="text-[11px] px-2 py-1 border rounded hover:bg-gray-50"
-            type="button"
-          >
-            {r}
-          </button>
-        ))}
-        <button
-          onClick={clearMock}
-          className="text-[11px] px-2 py-1 border rounded text-red-600 hover:bg-red-50"
-          type="button"
-        >
-          Clear
-        </button>
-      </div>
-      <div className="mt-1 text-[10px] text-gray-400">Dev only</div>
-    </div>
-  );
-}
 
 export default function CrewShell() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -88,7 +48,6 @@ export default function CrewShell() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -107,7 +66,6 @@ export default function CrewShell() {
   const handleSync = async () => {
     await syncActions();
   };
-
   const handleClearCompleted = () => {
     clearCompletedActions();
   };
@@ -239,8 +197,6 @@ export default function CrewShell() {
           </div>
         </div>
       )}
-
-      {import.meta.env.DEV && <DevRoleSwitcherInline />}
     </div>
   );
 }
