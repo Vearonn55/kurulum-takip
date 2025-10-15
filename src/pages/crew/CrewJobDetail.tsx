@@ -1,18 +1,12 @@
 // src/pages/crew/CrewJobDetail.tsx
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Clock,
   MapPin,
   Phone,
-  ClipboardList,
-  Camera,
-  AlertTriangle,
-  CheckCircle2,
   Play,
-  Pause,
-  XCircle,
   ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -138,7 +132,6 @@ export default function CrewJobDetail() {
   );
 
   const [job, setJob] = useState<CrewJob>(initial);
-  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     setJob(initial);
@@ -153,29 +146,9 @@ export default function CrewJobDetail() {
   const onStart = () => {
     if (job.status !== 'accepted' && job.status !== 'pending') return;
     setJob({ ...job, status: 'in_progress' });
-    setPaused(false);
     toast.success('Job started');
   };
 
-  const onPause = () => {
-    if (job.status !== 'in_progress') return;
-    setPaused((p) => !p);
-    toast((!paused ? 'Paused' : 'Resumed') + ' work');
-  };
-
-  const onComplete = () => {
-    if (job.status !== 'in_progress') return;
-    setJob({ ...job, status: 'completed' });
-    setPaused(false);
-    toast.success('Job completed');
-  };
-
-  const onFail = () => {
-    if (job.status === 'completed') return;
-    setJob({ ...job, status: 'failed' });
-    setPaused(false);
-    toast.error('Job marked as failed');
-  };
 
   return (
     <div className="mx-auto h-full w-full max-w-screen-sm">
@@ -249,22 +222,6 @@ export default function CrewJobDetail() {
           </section>
         )}
 
-        {/* Quick actions */}
-        <section className="grid grid-cols-3 gap-2">
-          <Link to={`/crew/jobs/${job.id}/checklist`} className="quick-tile">
-            <ClipboardList className="h-5 w-5" />
-            <span className="mt-1 text-xs">Checklist</span>
-          </Link>
-          <Link to={`/crew/jobs/${job.id}/capture`} className="quick-tile">
-            <Camera className="h-5 w-5" />
-            <span className="mt-1 text-xs">Photos</span>
-          </Link>
-          <Link to={`/crew/jobs/${job.id}/issues`} className="quick-tile">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="mt-1 text-xs">Issues</span>
-          </Link>
-        </section>
-
         {/* Timeline-ish status */}
         <section className="rounded-xl border bg-white p-3 shadow-sm">
           <div className="text-sm font-semibold text-gray-900">Progress</div>
@@ -284,7 +241,7 @@ export default function CrewJobDetail() {
                   key={s.key}
                   className={cn(
                     'rounded-lg border px-2 py-1',
-                    active ? 'border-primary-200 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-500'
+                    active ? 'border-primary-200 bg-emerald-200 text-primary-700' : 'border-gray-200 text-gray-500'
                   )}
                 >
                   {s.label}
@@ -292,12 +249,6 @@ export default function CrewJobDetail() {
               );
             })}
           </ol>
-
-          {job.status === 'failed' && (
-            <div className="mt-2 inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
-              <XCircle className="h-3.5 w-3.5" /> Marked as failed
-            </div>
-          )}
         </section>
 
         {/* Order link */}
@@ -314,90 +265,6 @@ export default function CrewJobDetail() {
           </button>
         </section>
       </main>
-
-      {/* Sticky action bar */}
-      <footer className="sticky bottom-0 z-10 border-t bg-white px-3 py-2">
-        <div className="grid grid-cols-3 gap-2">
-          {job.status === 'pending' && (
-            <>
-              <button className="btn-soft" onClick={onAccept}>
-                Accept
-              </button>
-              <button className="btn-soft col-span-2" onClick={onStart}>
-                <Play className="mr-1 h-4 w-4" />
-                Start
-              </button>
-            </>
-          )}
-
-          {job.status === 'accepted' && (
-            <>
-              <button className="btn-soft" onClick={onStart}>
-                <Play className="mr-1 h-4 w-4" />
-                Start
-              </button>
-              <button className="btn-soft" onClick={() => navigate(`/crew/jobs/${job.id}/checklist`)}>
-                <ClipboardList className="mr-1 h-4 w-4" />
-                Checklist
-              </button>
-              <button className="btn-soft" onClick={() => navigate(`/crew/jobs/${job.id}/capture`)}>
-                <Camera className="mr-1 h-4 w-4" />
-                Photos
-              </button>
-            </>
-          )}
-
-          {job.status === 'in_progress' && (
-            <>
-              <button className="btn-soft" onClick={onPause}>
-                <Pause className="mr-1 h-4 w-4" />
-                {paused ? 'Resume' : 'Pause'}
-              </button>
-              <button className="btn-soft" onClick={onComplete}>
-                <CheckCircle2 className="mr-1 h-4 w-4" />
-                Finish
-              </button>
-              <button className="btn-soft text-red-600 hover:bg-red-50" onClick={onFail}>
-                <XCircle className="mr-1 h-4 w-4" />
-                Fail
-              </button>
-            </>
-          )}
-
-          {job.status === 'completed' && (
-            <>
-              <Link to={`/crew/jobs/${job.id}/checklist`} className="btn-soft">
-                <ClipboardList className="mr-1 h-4 w-4" />
-                Checklist
-              </Link>
-              <Link to={`/crew/jobs/${job.id}/capture`} className="btn-soft">
-                <Camera className="mr-1 h-4 w-4" />
-                Photos
-              </Link>
-              <Link to={`/crew/issues`} className="btn-soft">
-                <AlertTriangle className="mr-1 h-4 w-4" />
-                Issues
-              </Link>
-            </>
-          )}
-
-          {job.status === 'failed' && (
-            <>
-              <button className="btn-soft" onClick={() => setJob({ ...job, status: 'accepted' })}>
-                Retry
-              </button>
-              <Link to={`/crew/jobs/${job.id}/capture`} className="btn-soft">
-                <Camera className="mr-1 h-4 w-4" />
-                Photos
-              </Link>
-              <Link to={`/crew/issues`} className="btn-soft">
-                <AlertTriangle className="mr-1 h-4 w-4" />
-                Issues
-              </Link>
-            </>
-          )}
-        </div>
-      </footer>
     </div>
   );
 }
