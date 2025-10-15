@@ -224,13 +224,6 @@ export default function CrewHome() {
         </div>
       </div>
 
-      {/* Summary cards (This Week / Active / Done / Issues) */}
-      <div className="mb-3 grid grid-cols-4 gap-2">
-        <SummaryCard label="This Week" value={summary.weekTotal} />
-        <SummaryCard label="Active" value={summary.active} />
-        <SummaryCard label="Done" value={summary.done} />
-        <SummaryCard label="Issues" value={summary.issues} />
-      </div>
 
       {/* Current Active Job */}
       <section className="mb-4">
@@ -238,13 +231,13 @@ export default function CrewHome() {
         {activeJob ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 shadow-sm">
             <div className="mb-1 flex items-center justify-between">
-              <div className="text-sm font-semibold text-gray-900">{activeJob.customer}</div>
+              <div className="text-base font-semibold text-gray-900">{activeJob.customer}</div>
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
                 In progress
               </span>
             </div>
 
-            <div className="mt-1 grid grid-cols-1 gap-1 text-[12px] text-gray-700">
+            <div className="mt-1 grid grid-cols-1 gap-1 text-sm text-gray-700">
               <div className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-gray-500" />
                 <span>
@@ -301,17 +294,17 @@ export default function CrewHome() {
                           {j.customer}
                           <span className="ml-2 text-xs font-normal text-gray-500">#{j.id}</span>
                         </div>
-                        <div className="mt-1 grid grid-cols-3 gap-2 text-[11px] text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            {fmtTime(j.start)} – {fmtTime(j.end)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5" />
-                            {j.zone}
-                          </span>
-                          <span className="truncate">{j.address}</span>
-                        </div>
+                        <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                         <span className="flex items-center gap-1.5 font-medium">
+                         <Clock className="h-4 w-4" />
+                         {fmtTime(j.start)} – {fmtTime(j.end)}
+                         </span>
+                        <span className="flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4" />
+                      {j.zone}
+                     </span>
+                    </div>
+
                       </div>
                       <StatusPill status={j.status} />
                     </div>
