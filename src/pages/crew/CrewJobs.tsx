@@ -1,20 +1,13 @@
 // src/pages/crew/CrewJobs.tsx
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  Search,
   CalendarDays,
   Clock,
   MapPin,
-  CheckCircle2,
-  Play,
-  Pause,
-  ClipboardList,
-  Camera,
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import toast from 'react-hot-toast';
 
 /* --------------------------- Mock types & data --------------------------- */
 type CrewJobStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'failed';
@@ -171,10 +164,6 @@ export default function CrewJobs() {
 
   // UI state
   const [q, setQ] = useState('');
-  const [tab, setTab] = useState<'all' | CrewJobStatus>('all');
-
-  // Local “mutable” status overrides for quick actions
-  const [localJobs, setLocalJobs] = useState<Record<string, CrewJobStatus>>({});
 
   // Active day’s jobs
   const activeDate = useMemo(
@@ -184,8 +173,7 @@ export default function CrewJobs() {
   const raw = useMemo(() => jobsForDate(activeDate), [activeDate]);
 
   const jobs = useMemo(() => {
-    // apply local overrides
-    let list = raw.map((j) => ({ ...j, status: localJobs[j.id] ?? j.status }));
+    let list = raw.map((j) => ({ ...j }));
     // search
     if (q.trim()) {
       const s = q.toLowerCase();
@@ -197,26 +185,10 @@ export default function CrewJobs() {
           j.zone.toLowerCase().includes(s)
       );
     }
-    // tab filter
-    if (tab !== 'all') {
-      list = list.filter((j) => j.status === tab);
-    }
     // sort by start asc
     list.sort((a, b) => a.start.localeCompare(b.start));
     return list;
-  }, [raw, q, tab, localJobs]);
-
-  const counts = useMemo(() => {
-    const c = { all: raw.length, pending: 0, accepted: 0, in_progress: 0, completed: 0, failed: 0 };
-    raw.forEach((j) => {
-      const s = localJobs[j.id] ?? j.status;
-      (c as any)[s] += 1;
-    });
-    return c;
-  }, [raw, localJobs]);
-
-  const setStatus = (id: string, s: CrewJobStatus) =>
-    setLocalJobs((m) => ({ ...m, [id]: s }));
+  }, [raw, q]);
 
   return (
     <div className="mx-auto w-full max-w-screen-sm">
@@ -233,7 +205,7 @@ export default function CrewJobs() {
         </div>
 
         {/* Week strip */}
-        <div className="no-scrollbar flex gap-2 overflow-x-auto px-2 pb-2">
+        <div className="flex flex-wrap justify-center gap-1.5 overflow-x-hidden px-2 pb-2">
           {weekDays.map((d) => {
             const isToday = d.toDateString() === new Date().toDateString();
             const isActive = d.toDateString() === selectedKey;
@@ -241,61 +213,20 @@ export default function CrewJobs() {
               <button
                 key={d.toDateString()}
                 className={cn(
-                  'min-w-[84px] rounded-lg border px-2 py-2 text-center',
+                  'min-w-[52px] rounded-lg border px-1 py-1 text-center',
                   isActive ? 'bg-primary-600 text-white border-primary-600' : 'bg-white hover:bg-gray-50'
                 )}
                 onClick={() => setSelectedKey(d.toDateString())}
               >
-                <div className="text-[11px] uppercase tracking-wide">
+                <div className="text-[10px] uppercase tracking-wide">
                   {d.toLocaleDateString(undefined, { weekday: 'short' })}
                 </div>
-                <div className={cn('text-sm font-semibold', isActive ? 'text-white' : 'text-gray-900')}>
+                <div className={cn('text-xs font-semibold', isActive ? 'text-white' : 'text-gray-900')}>
                   {d.getDate()}
                 </div>
-                {isToday && !isActive && (
-                  <div className="mt-1 text-[10px] text-primary-600">today</div>
-                )}
               </button>
             );
           })}
-        </div>
-
-        {/* Search */}
-        <div className="px-3 pb-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-            <input
-              className="input w-full pl-8"
-              placeholder="Search customer, order, address, zone…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Status tabs */}
-        <div className="px-1 pb-2">
-          <div className="no-scrollbar flex gap-2 overflow-x-auto px-2">
-            {([
-              { k: 'all', c: counts.all },
-              { k: 'pending', c: counts.pending },
-              { k: 'accepted', c: counts.accepted },
-              { k: 'in_progress', c: counts.in_progress },
-              { k: 'completed', c: counts.completed },
-              { k: 'failed', c: counts.failed },
-            ] as const).map((t) => (
-              <button
-                key={t.k}
-                className={cn(
-                  'whitespace-nowrap rounded-full border px-3 py-1 text-xs',
-                  tab === t.k ? 'bg-primary-600 text-white border-primary-600' : 'bg-white hover:bg-gray-50'
-                )}
-                onClick={() => setTab(t.k as any)}
-              >
-                {t.k.replace('_', ' ')} <span className="ml-1 rounded bg-black/5 px-1">{t.c}</span>
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 
@@ -303,31 +234,30 @@ export default function CrewJobs() {
       <main className="space-y-2 p-3">
         {jobs.map((j) => {
           const s = j.status;
-          const isActionable = s === 'pending' || s === 'accepted' || s === 'in_progress';
           return (
-            <div key={j.id} className="rounded-lg border bg-white p-3 shadow-sm">
+            <div key={j.id} className="rounded-lg border bg-white p-4 shadow-sm">
               <button
                 onClick={() => navigate(`/crew/jobs/${j.id}`)}
                 className="flex w-full items-start justify-between text-left"
               >
                 <div className="min-w-0 pr-2">
                   <div className="flex items-center gap-2">
-                    <div className="truncate font-medium text-gray-900">{j.customer}</div>
+                    <div className="truncate text-lg font-semibold text-gray-900">{j.customer}</div>
                     <span
                       className={cn(
-                        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
                         statusTone(s)
                       )}
                     >
                       {statusLabel(s)}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-                    <Clock className="h-3.5 w-3.5" />
+                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-700">
+                    <Clock className="h-4 w-4" />
                     <span>{fmtTimeRange(j.start, j.end)}</span>
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-                    <MapPin className="h-3.5 w-3.5" />
+                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-700">
+                    <MapPin className="h-4 w-4" />
                     <span className="truncate">
                       {j.address} • {j.zone}
                     </span>
@@ -336,84 +266,6 @@ export default function CrewJobs() {
                 </div>
                 <ChevronRight className="ml-2 h-5 w-5 flex-shrink-0 text-gray-400" />
               </button>
-
-              {/* Inline quick actions */}
-              {isActionable && (
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {s === 'pending' && (
-                    <>
-                      <button
-                        className="btn-soft"
-                        onClick={() => {
-                          setStatus(j.id, 'accepted');
-                          toast.success('Job accepted');
-                        }}
-                      >
-                        Accept
-                      </button>
-                      <button
-                        className="btn-soft col-span-2"
-                        onClick={() => {
-                          setStatus(j.id, 'in_progress');
-                          toast.success('Job started');
-                        }}
-                      >
-                        <Play className="mr-1 h-4 w-4" />
-                        Start
-                      </button>
-                    </>
-                  )}
-
-                  {s === 'accepted' && (
-                    <>
-                      <button
-                        className="btn-soft"
-                        onClick={() => {
-                          setStatus(j.id, 'in_progress');
-                          toast.success('Job started');
-                        }}
-                      >
-                        <Play className="mr-1 h-4 w-4" />
-                        Start
-                      </button>
-                      <Link to={`/crew/jobs/${j.id}/checklist`} className="btn-soft">
-                        <ClipboardList className="mr-1 h-4 w-4" />
-                        Checklist
-                      </Link>
-                      <Link to={`/crew/jobs/${j.id}/capture`} className="btn-soft">
-                        <Camera className="mr-1 h-4 w-4" />
-                        Photos
-                      </Link>
-                    </>
-                  )}
-
-                  {s === 'in_progress' && (
-                    <>
-                      <button
-                        className="btn-soft"
-                        onClick={() => toast('Pause/Resume in Job Detail')}
-                      >
-                        <Pause className="mr-1 h-4 w-4" />
-                        Pause
-                      </button>
-                      <button
-                        className="btn-soft"
-                        onClick={() => {
-                          setStatus(j.id, 'completed');
-                          toast.success('Job finished');
-                        }}
-                      >
-                        <CheckCircle2 className="mr-1 h-4 w-4" />
-                        Finish
-                      </button>
-                      <Link to={`/crew/jobs/${j.id}/capture`} className="btn-soft">
-                        <Camera className="mr-1 h-4 w-4" />
-                        Photos
-                      </Link>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}
