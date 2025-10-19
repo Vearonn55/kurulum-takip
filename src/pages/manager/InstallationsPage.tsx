@@ -21,7 +21,6 @@ import { cn } from '../../lib/utils';
 type InstallationStatus =
   | 'pending'
   | 'staged'
-  | 'accepted'
   | 'in_progress'
   | 'completed'
   | 'failed'
@@ -133,7 +132,7 @@ function makeMock(dayISO: string): MockInstallation[] {
       order_id: 'ORD-10008',
       customer: 'Can Er',
       zone: 'Nicosia',
-      status: 'accepted',
+      status: 'staged',
       start: at(day, 12, 30),
       end: at(day, 14, 0),
       address: 'Girne Kapısı, Nicosia',
@@ -208,7 +207,6 @@ export default function InstallationsPage() {
       all: data.length,
       pending: data.filter((r) => r.status === 'pending').length,
       staged: data.filter((r) => r.status === 'staged').length,
-      accepted: data.filter((r) => r.status === 'accepted').length,
       in_progress: data.filter((r) => r.status === 'in_progress').length,
       completed: data.filter((r) => r.status === 'completed').length,
       failed: data.filter((r) => r.status === 'failed').length,
@@ -281,7 +279,6 @@ export default function InstallationsPage() {
               <option value="all">All</option>
               <option value="pending">Pending</option>
               <option value="staged">Staged</option>
-              <option value="accepted">Accepted</option>
               <option value="in_progress">In progress</option>
               <option value="completed">Completed</option>
               <option value="failed">Failed</option>
@@ -335,7 +332,6 @@ export default function InstallationsPage() {
         <QuickChip label="All" value={counts.all} active={status === 'all'} onClick={() => { setStatus('all'); setPage(1); }} />
         <QuickChip label="Pending" value={counts.pending} tone="gray" icon={<Clock className="h-3.5 w-3.5" />} active={status === 'pending'} onClick={() => { setStatus('pending'); setPage(1); }} />
         <QuickChip label="Staged" value={counts.staged} tone="blue" icon={<Wrench className="h-3.5 w-3.5" />} active={status === 'staged'} onClick={() => { setStatus('staged'); setPage(1); }} />
-        <QuickChip label="Accepted" value={counts.accepted} tone="sky" icon={<Users className="h-3.5 w-3.5" />} active={status === 'accepted'} onClick={() => { setStatus('accepted'); setPage(1); }} />
         <QuickChip label="In progress" value={counts.in_progress} tone="amber" icon={<Clock className="h-3.5 w-3.5" />} active={status === 'in_progress'} onClick={() => { setStatus('in_progress'); setPage(1); }} />
         <QuickChip label="Completed" value={counts.completed} tone="emerald" icon={<CheckCircle2 className="h-3.5 w-3.5" />} active={status === 'completed'} onClick={() => { setStatus('completed'); setPage(1); }} />
         <QuickChip label="Failed" value={counts.failed} tone="rose" icon={<AlertTriangle className="h-3.5 w-3.5" />} active={status === 'failed'} onClick={() => { setStatus('failed'); setPage(1); }} />
@@ -435,7 +431,6 @@ function statusRank(s: InstallationStatus) {
   const order: InstallationStatus[] = [
     'pending',
     'staged',
-    'accepted',
     'in_progress',
     'completed',
     'failed',
@@ -448,7 +443,6 @@ function StatusPill({ status }: { status: InstallationStatus }) {
   const cfg: Record<InstallationStatus, { tone: string; Icon: any; label: string }> = {
     pending:    { tone: 'border-gray-200 bg-gray-50 text-gray-700', Icon: Clock, label: 'Pending' },
     staged:     { tone: 'border-blue-200 bg-blue-50 text-blue-700', Icon: Wrench, label: 'Staged' },
-    accepted:   { tone: 'border-sky-200 bg-sky-50 text-sky-700', Icon: Users, label: 'Accepted' },
     in_progress:{ tone: 'border-amber-200 bg-amber-50 text-amber-700', Icon: Clock, label: 'In progress' },
     completed:  { tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', Icon: CheckCircle2, label: 'Completed' },
     failed:     { tone: 'border-rose-200 bg-rose-50 text-rose-700', Icon: AlertTriangle, label: 'Failed' },
