@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import { cn } from '../../lib/utils';
 
 /* --------------------------- Mock types & data --------------------------- */
-type CrewJobStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'failed';
+type CrewJobStatus = 'pending' | 'Staged' | 'in_progress' | 'completed' | 'failed';
 
 type CrewJob = {
   id: string;
@@ -68,7 +68,7 @@ function mockJobs(): CrewJob[] {
       customer: 'Selin Kaya',
       address: 'Ece Sk. 12, Famagusta',
       zone: 'Famagusta',
-      status: 'accepted',
+      status: 'Staged',
       notes: 'Kitchen island assembly',
       items: [{ sku: 'KIT-ISL-120', name: 'Kitchen Island 120', qty: 1 }],
     },
@@ -96,7 +96,7 @@ function statusClass(s: CrewJobStatus) {
       return 'border-emerald-200 bg-emerald-50 text-emerald-700';
     case 'in_progress':
       return 'border-blue-200 bg-blue-50 text-blue-700';
-    case 'accepted':
+    case 'Staged':
       return 'border-amber-200 bg-amber-50 text-amber-700';
     case 'failed':
       return 'border-red-200 bg-red-50 text-red-700';
@@ -111,8 +111,8 @@ function statusLabel(s: CrewJobStatus) {
       return 'Completed';
     case 'in_progress':
       return 'In progress';
-    case 'accepted':
-      return 'Accepted';
+    case 'Staged':
+      return 'Staged';
     case 'failed':
       return 'Failed';
     default:
@@ -139,12 +139,12 @@ export default function CrewJobDetail() {
 
   const onAccept = () => {
     if (job.status !== 'pending') return;
-    setJob({ ...job, status: 'accepted' });
-    toast.success('Job accepted');
+    setJob({ ...job, status: 'Staged' });
+    toast.success('Job staged');
   };
 
   const onStart = () => {
-    if (job.status !== 'accepted' && job.status !== 'pending') return;
+    if (job.status !== 'Staged' && job.status !== 'pending') return;
     setJob({ ...job, status: 'in_progress' });
     toast.success('Job started');
   };
@@ -227,12 +227,12 @@ export default function CrewJobDetail() {
           <div className="text-sm font-semibold text-gray-900">Progress</div>
           <ol className="mt-2 grid grid-cols-3 gap-2 text-center text-[11px]">
             {[
-              { key: 'accepted', label: 'Accepted' },
+              { key: 'staged', label: 'Staged' },
               { key: 'in_progress', label: 'In progress' },
               { key: 'completed', label: 'Completed' },
             ].map((s) => {
               const active =
-                (s.key === 'accepted' && (job.status === 'accepted' || job.status === 'in_progress' || job.status === 'completed')) ||
+                (s.key === 'staged' && (job.status === 'Staged' || job.status === 'in_progress' || job.status === 'completed')) ||
                 (s.key === 'in_progress' && (job.status === 'in_progress' || job.status === 'completed')) ||
                 (s.key === 'completed' && job.status === 'completed');
 

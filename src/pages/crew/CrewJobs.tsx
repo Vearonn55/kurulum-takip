@@ -10,7 +10,7 @@ import {
 import { cn } from '../../lib/utils';
 
 /* --------------------------- Mock types & data --------------------------- */
-type CrewJobStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'failed';
+type CrewJobStatus = 'pending' | 'staged' | 'in_progress' | 'completed' | 'failed';
 type Zone = 'Nicosia' | 'Famagusta' | 'Kyrenia' | 'Morphou' | 'Iskele';
 
 type CrewJob = {
@@ -84,31 +84,31 @@ function jobsForDate(day: Date): CrewJob[] {
   const sets: Record<number, CrewJob[]> = {
     1: [ // Mon
       J(1, 9, 0, 10, 30, 'Ali Demir', 'Atatürk Cad. No:18, Nicosia', 'Nicosia', 'in_progress', 'Wardrobe + 2 chairs'),
-      J(2, 12, 0, 13, 30, 'Selin Kaya', 'Ece Sk. 12, Famagusta', 'Famagusta', 'accepted', 'Kitchen island'),
+      J(2, 12, 0, 13, 30, 'Selin Kaya', 'Ece Sk. 12, Famagusta', 'Famagusta', 'staged', 'Kitchen island'),
       J(3, 15, 0, 16, 30, 'Mete Aydın', 'Zeytinlik Mah., Kyrenia', 'Kyrenia', 'pending', 'Sofa & coffee table'),
     ],
     2: [ // Tue
-      J(1, 9, 30, 11, 0, 'Deniz Arslan', 'Dr. Fazıl Küçük Bul., Nicosia', 'Nicosia', 'accepted'),
+      J(1, 9, 30, 11, 0, 'Deniz Arslan', 'Dr. Fazıl Küçük Bul., Nicosia', 'Nicosia', 'staged'),
       J(2, 13, 0, 14, 0, 'Can Bora', 'İskele Sahil Yolu, Iskele', 'Iskele', 'pending'),
       J(3, 15, 30, 17, 0, 'Ege Öztürk', 'Gazimağusa Merkez', 'Famagusta', 'completed'),
     ],
     3: [ // Wed
       J(1, 10, 0, 11, 30, 'Elif Kar', 'Girne Merkez', 'Kyrenia', 'in_progress'),
-      J(2, 14, 0, 15, 0, 'Bora Kılıç', 'Güzelyurt', 'Morphou', 'accepted'),
+      J(2, 14, 0, 15, 0, 'Bora Kılıç', 'Güzelyurt', 'Morphou', 'staged'),
     ],
     4: [ // Thu
-      J(1, 9, 0, 10, 0, 'Seda Şen', 'Nicosia', 'Nicosia', 'accepted'),
+      J(1, 9, 0, 10, 0, 'Seda Şen', 'Nicosia', 'Nicosia', 'staged'),
       J(2, 11, 30, 13, 0, 'Mert Ak', 'Famagusta', 'Famagusta', 'in_progress'),
       J(3, 15, 0, 16, 0, 'Aylin Öz', 'Kyrenia', 'Kyrenia', 'pending'),
       J(4, 17, 0, 18, 0, 'Cem Yiğit', 'Iskele', 'Iskele', 'failed'),
     ],
     5: [ // Fri
-      J(1, 9, 0, 10, 30, 'Tuğçe Şen', 'Nicosia', 'Nicosia', 'accepted'),
+      J(1, 9, 0, 10, 30, 'Tuğçe Şen', 'Nicosia', 'Nicosia', 'staged'),
       J(2, 12, 0, 13, 0, 'Burak U.', 'Kyrenia', 'Kyrenia', 'pending'),
       J(3, 14, 30, 16, 0, 'Selçuk E.', 'Famagusta', 'Famagusta', 'completed'),
     ],
     6: [ // Sat
-      J(1, 10, 0, 11, 0, 'Cenk D.', 'Morphou', 'Morphou', 'accepted'),
+      J(1, 10, 0, 11, 0, 'Cenk D.', 'Morphou', 'Morphou', 'staged'),
       J(2, 12, 30, 13, 30, 'Oya B.', 'Nicosia', 'Nicosia', 'pending'),
     ],
     0: [ // Sun
@@ -132,7 +132,7 @@ function statusTone(s: CrewJobStatus) {
   switch (s) {
     case 'completed': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
     case 'in_progress': return 'border-blue-200 bg-blue-50 text-blue-700';
-    case 'accepted': return 'border-amber-200 bg-amber-50 text-amber-700';
+    case 'staged': return 'border-amber-200 bg-amber-50 text-amber-700';
     case 'failed': return 'border-red-200 bg-red-50 text-red-700';
     default: return 'border-gray-200 bg-gray-50 text-gray-700';
   }
@@ -141,7 +141,7 @@ function statusLabel(s: CrewJobStatus) {
   switch (s) {
     case 'completed': return 'Completed';
     case 'in_progress': return 'In progress';
-    case 'accepted': return 'Accepted';
+    case 'staged': return 'Staged';
     case 'failed': return 'Failed';
     default: return 'Pending';
   }
