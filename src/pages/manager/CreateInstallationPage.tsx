@@ -29,7 +29,12 @@ const ZONES = [
   { value: 'iskele', label: 'İskele (Famagusta District)' },
   { value: 'lefke', label: 'Lefke' },
 ];
-// ----------------------------
+
+const DIFFICULTIES = [
+  { value: 'easy', label: 'Easy' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'hard', label: 'Hard' },
+] as const;
 
 export default function CreateInstallationPage() {
   const navigate = useNavigate();
@@ -42,10 +47,10 @@ export default function CreateInstallationPage() {
   const [orderId, setOrderId] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [timeStart, setTimeStart] = useState<string>('09:00');
-  const [timeEnd, setTimeEnd] = useState<string>('11:00');
   const [zone, setZone] = useState<string>('');
   const [crewIds, setCrewIds] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>('');
+  const [difficulty, setDifficulty] = useState<'' | 'easy' | 'intermediate' | 'hard'>('');
 
   // ----- data: orders (filter by store and optionally status) -----
   const ordersQuery = useQuery({
@@ -82,14 +87,11 @@ export default function CreateInstallationPage() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const scheduled_start = toISODateTime(date, timeStart);
-      const scheduled_end = toISODateTime(date, timeEnd);
 
       if (!orderId) throw new Error('Order is required');
       if (!date) throw new Error('Date is required');
-      if (!timeStart || !timeEnd) throw new Error('Start/end time is required');
-      if (new Date(scheduled_end) <= new Date(scheduled_start)) {
-        throw new Error('End time must be after start time');
-      }
+      if (!timeStart) throw new Error('Start time is required');
+      if (!difficulty) throw new Error('Installation difficulty is required');
 
       // Append zone to notes so it shows downstream (Calendar/Detail)
       const finalNotes = zone
@@ -99,9 +101,9 @@ export default function CreateInstallationPage() {
       return apiClient.createInstallation({
         order_id: orderId,
         scheduled_start,
-        scheduled_end,
         crew_user_ids: crewIds.length ? crewIds : undefined,
         notes: finalNotes || undefined,
+         difficulty: difficulty || undefined,
         items: [], // If backend requires, supply actual order item mappings later
       });
     },
@@ -121,14 +123,36 @@ export default function CreateInstallationPage() {
     },
   });
 
-  const toggleCrew = (id: string) => {
-    setCrewIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
+const toggleCrew = (id: string) => {
+  setCrewIds((prev) => {
+    const already = prev.includes(id);
+    if (already) {
+      return prev.filter((x) => x !== id);
+    }
+    if (prev.length >= 3) {
+      toast.error('You can assign up to 3 crew members');
+      return prev;
+    }
+    return [...prev, id];
+  });
+};
+  
+  const toggleTeamMember = (id: string) => {
+  setCrewIds((prev) => {
+    const already = prev.includes(id);
+    if (already) {
+      return prev.filter((x) => x !== id);
+    }
+    if (prev.length >= 3) {
+      toast.error('You can assign up to 3 crew members');
+      return prev;
+    }
+    return [...prev, id];
+  });
+};
 
   const canSubmit =
-    !!orderId && !!date && !!timeStart && !!timeEnd && !createMutation.isPending;
+    !!orderId && !!date && !!timeStart && !createMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -192,7 +216,7 @@ export default function CreateInstallationPage() {
               <h3 className="card-title">Schedule</h3>
               <p className="card-description">Pick date and time</p>
             </div>
-            <div className="card-content grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4 text-gray-500" />
@@ -216,19 +240,6 @@ export default function CreateInstallationPage() {
                   className="input"
                   value={timeStart}
                   onChange={(e) => setTimeStart(e.target.value)}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  End time
-                </span>
-                <input
-                  type="time"
-                  className="input"
-                  value={timeEnd}
-                  onChange={(e) => setTimeEnd(e.target.value)}
                 />
               </label>
             </div>
@@ -256,6 +267,51 @@ export default function CreateInstallationPage() {
             </div>
           </section>
 
+          {/* Installation Difficulty */}
+<section className="card">
+  <div className="card-header">
+    <h3 className="card-title">Installation Difficulty</h3>
+    <p className="card-description">Select one option</p>
+  </div>
+  <div className="card-content space-y-3">
+    <div className="flex flex-wrap gap-2">
+      {DIFFICULTIES.map((d) => {
+        const selected = difficulty === d.value;
+        return (
+          <button
+            key={d.value}
+            type="button"
+            onClick={() => setDifficulty(d.value)}
+            className={cn(
+              'px-3 py-1.5 rounded-md border text-sm transition',
+              selected
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white hover:bg-gray-50 border-gray-300'
+            )}
+            aria-pressed={selected}
+          >
+            {d.label}
+          </button>
+        );
+      })}
+    </div>
+
+    {/* Selected value */}
+    <div className="mt-1">
+      {difficulty ? (
+        <p className="text-sm text-gray-700">
+          Selected: <span className="font-medium">
+            {DIFFICULTIES.find((x) => x.value === difficulty)?.label}
+          </span>
+        </p>
+      ) : (
+        <p className="text-sm text-gray-500">No difficulty selected.</p>
+      )}
+    </div>
+  </div>
+</section>
+
+
           {/* Notes */}
           <section className="card">
             <div className="card-header">
@@ -280,46 +336,72 @@ export default function CreateInstallationPage() {
           <section className="card">
             <div className="card-header">
               <h3 className="card-title">Assign Crew</h3>
-              <p className="card-description">Select one or more crew members</p>
+              <p className="card-description">Select up to 3 crew members</p>
             </div>
-            <div className="card-content">
-              {crewQuery.isLoading && (
-                <p className="text-sm text-gray-500">Loading crew…</p>
-              )}
-              {crewQuery.isError && (
-                <p className="text-sm text-red-600">Failed to load crew.</p>
-              )}
-              {!crewQuery.isLoading && (crewQuery.data?.length ?? 0) === 0 && (
-                <p className="text-sm text-gray-500">No crew users found.</p>
-              )}
-              <div className="space-y-2 mt-2">
-                {crewQuery.data?.map((c) => (
-                  <label
-                    key={c.id}
-                    className={cn(
-                      'flex items-center justify-between rounded-md border p-2 cursor-pointer',
-                      crewIds.includes(c.id)
-                        ? 'bg-primary-50 border-primary-200'
-                        : 'bg-white hover:bg-gray-50'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <UsersIcon className="h-4 w-4 text-gray-500" />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{c.name}</div>
-                        <div className="text-xs text-gray-500">{c.email}</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      checked={crewIds.includes(c.id)}
-                      onChange={() => toggleCrew(c.id)}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
+          <div className="card-content space-y-3">
+  {/* Loading / errors / empty states */}
+  {crewQuery.isLoading && (
+    <p className="text-sm text-gray-500">Loading crew…</p>
+  )}
+  {crewQuery.isError && (
+    <p className="text-sm text-red-600">Failed to load crew.</p>
+  )}
+
+  {/* Picker bar */}
+  <div className="flex flex-wrap gap-2">
+    {(crewQuery.data ?? []).map((c) => {
+      const selected = crewIds.includes(c.id);
+      const atLimit = crewIds.length >= 3 && !selected;
+      return (
+        <button
+          key={c.id}
+          type="button"
+          onClick={() => toggleCrew(c.id)}
+          className={cn(
+            'px-3 py-1.5 rounded-md border text-sm transition',
+            selected
+              ? 'bg-primary-600 text-white border-primary-600'
+              : 'bg-white hover:bg-gray-50 border-gray-300',
+            atLimit && 'opacity-50 cursor-not-allowed'
+          )}
+          disabled={atLimit}
+          title={atLimit ? 'Maximum 3 members' : undefined}
+        >
+          {c.name ?? c.email ?? c.id}
+        </button>
+      );
+    })}
+  </div>
+
+  {/* Selected members */}
+  <div className="mt-2">
+    {crewIds.length === 0 ? (
+      <p className="text-sm text-gray-500">No crew selected yet.</p>
+    ) : (
+      <div className="flex flex-wrap gap-2">
+        {(crewQuery.data ?? [])
+          .filter((c) => crewIds.includes(c.id))
+          .map((c) => (
+            <span
+              key={c.id}
+              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm bg-white"
+            >
+              {c.name ?? c.email ?? c.id}
+              <button
+                type="button"
+                onClick={() => toggleCrew(c.id)}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label={`Remove ${c.name ?? c.email ?? c.id}`}
+                title="Remove"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+      </div>
+    )}
+  </div>
+</div>  
           </section>
 
           {/* Actions */}
@@ -339,7 +421,7 @@ export default function CreateInstallationPage() {
               </button>
               {!canSubmit && (
                 <p className="text-xs text-gray-500 mt-2">
-                  Select order, date and times to enable.
+                  Select order, date and time to enable.
                 </p>
               )}
             </div>
