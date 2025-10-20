@@ -108,17 +108,17 @@ export default function CrewChecklist() {
 
   // Load draft from localStorage
   useEffect(() => {
-    if (!jobId) return;
-    try {
-      const raw = localStorage.getItem(storageKey(jobId));
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setValues(parsed);
-      }
-    } catch {
-      /* ignore */
+  if (!jobId) return;
+  try {
+    const raw = localStorage.getItem(storageKey(jobId));
+    if (raw) {
+      const parsed = JSON.parse(raw) as Values;
+      setValues(sanitizeValues(template, parsed));
     }
-  }, [jobId]);
+  } catch {
+    /* ignore */
+  }
+  }, [jobId, template]);
 
   // Autosave
   useEffect(() => {
@@ -289,13 +289,29 @@ export default function CrewChecklist() {
 
                 {item.type === 'number' && (
                   <div className="flex items-center gap-2">
-                    <input
-                      inputMode="decimal"
-                      className="input w-32"
-                      placeholder="0"
-                      value={v ?? ''}
-                      onChange={(e) => update(item.id, e.target.value === '' ? undefined : Number(e.target.value))}
-                    />
+                    {item.type === 'number' && (
+  <div className="flex items-center gap-2">
+    <input
+      type="number"
+      inputMode="decimal"
+      className="input w-32"
+      placeholder="0"
+      value={typeof v === 'number' && !Number.isNaN(v) ? v : ''}
+      onChange={(e) => {
+        const raw = e.target.value;
+        update(item.id, raw === '' ? undefined : Number(raw));
+      }}
+    />
+    <span className="text-xs text-gray-500">mm</span>
+    <button
+      onClick={() => update(item.id, undefined)}
+      className="ml-auto rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
+    >
+      Clear
+    </button>
+  </div>
+)}
+
                     <span className="text-xs text-gray-500">mm</span>
                     <button
                       onClick={() => update(item.id, undefined)}
@@ -433,6 +449,37 @@ function isFilled(item: ChecklistItem, v: ItemValue | undefined): boolean {
       return false;
   }
 }
+
+function sanitizeValues(
+  tpl: ChecklistTemplate,
+  vals: Values | undefined
+): Values {
+  if (!vals) return {};
+  const out: Values = {};
+  for (const it of tpl.items) {
+    const v = vals[it.id];
+    switch (it.type) {
+      case 'boolean':
+        out[it.id] = typeof v === 'boolean' ? v : undefined;
+        break;
+      case 'number':
+        out[it.id] = typeof v === 'number' && !Number.isNaN(v) ? v : undefined;
+        break;
+      case 'text':
+        out[it.id] = typeof v === 'string' ? v : undefined;
+        break;
+      case 'photo':
+        out[it.id] = Array.isArray(v)
+          ? (v as PhotoValue[]).filter(
+              (p) => p && typeof p.url === 'string'
+            )
+          : [];
+        break;
+    }
+  }
+  return out;
+}
+
 
 /* ---------------------------------------------------------------------------
 Styles used:

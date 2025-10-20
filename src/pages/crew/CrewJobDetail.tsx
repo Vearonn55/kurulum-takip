@@ -254,7 +254,7 @@ export default function CrewJobDetail() {
         {/* Order link */}
         <section className="rounded-xl border bg-white p-3 shadow-sm">
           <button
-            onClick={() => toast('Order details coming soon')}
+            onClick={() => navigate(`/crew/jobs/${job.id}/order`)}
             className="flex w-full items-center justify-between"
           >
             <div className="text-left">

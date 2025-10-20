@@ -52,6 +52,7 @@ import ProductsPage from './pages/warehouse/ProductsPage';
 import CrewHome from './pages/crew/CrewHome';
 import CrewJobs from './pages/crew/CrewJobs';
 import CrewJobDetail from './pages/crew/CrewJobDetail';
+import CrewOrderDetail from './pages/crew/CrewOrderDetail';
 import CrewChecklist from './pages/crew/CrewChecklist';
 import CrewCapture from './pages/crew/CrewCapture';
 import CrewIssues from './pages/crew/CrewIssues';
@@ -67,6 +68,13 @@ import ForbiddenPage from './pages/shared/ForbiddenPage';
 import DevControls from './dev/DevControls';
 
 type DevtoolsCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
+const cornerToSide: Record<DevtoolsCorner, 'top' | 'bottom' | 'left' | 'right'> = {
+  'top-left': 'left',
+  'bottom-left': 'left',
+  'top-right': 'right',
+  'bottom-right': 'right',
+};
 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
@@ -356,6 +364,7 @@ function App() {
                 <Route path="jobs/:id/checklist" element={<CrewChecklist />} />
                 <Route path="jobs/:id/capture" element={<CrewCapture />} />
                 <Route path="jobs/:id/issues" element={<CrewIssues />} />
+                <Route path="jobs/:id/order" element={<CrewOrderDetail />} />
                 <Route path="issues" element={<CrewIssues />} />
                 <Route path="settings" element={<CrewSettings />} />
               </Route>
@@ -384,7 +393,16 @@ function App() {
         </Router>
 
         {/* React Query DevTools (movable) */}
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} position={rqPosition} />}
+        {import.meta.env.DEV && (
+         <ReactQueryDevtools
+         initialIsOpen={false}
+         position={
+         rqPosition.startsWith('top')
+          ? 'top'
+          : 'bottom'
+         } // safely map corner to side
+         />
+)}
       </QueryClientProvider>
     </ErrorBoundary>
   );
