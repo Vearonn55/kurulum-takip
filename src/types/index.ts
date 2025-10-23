@@ -1,6 +1,6 @@
 // Core types for InstallOps application
 
-export type UserRole = 'ADMIN' | 'STORE_MANAGER' | 'WAREHOUSE_MANAGER' | 'CREW';
+export type UserRole = 'ADMIN' | 'STORE_MANAGER' | 'CREW';
 
 export interface User {
   id: string;

@@ -36,17 +36,6 @@ import InstallationsPage from './pages/manager/InstallationsPage';
 import InstallationDetailPage from './pages/manager/InstallationDetailPage';
 import CreateInstallationPage from './pages/manager/CreateInstallationPage';
 import CalendarPage from './pages/manager/CalendarPage';
-import CustomersPage from './pages/manager/CustomersPage';
-import CustomerDetailPage from './pages/manager/CustomerDetailPage';
-import CreateCustomerPage from './pages/manager/CreateCustomerPage';
-
-// Warehouse pages
-import WarehouseDashboard from './pages/warehouse/WarehouseDashboard';
-import InventoryPage from './pages/warehouse/InventoryPage';
-import PickListsPage from './pages/warehouse/PickListsPage';
-import PickListDetailPage from './pages/warehouse/PickListDetailPage';
-import CreatePickListPage from './pages/warehouse/CreatePickListPage';
-import ProductsPage from './pages/warehouse/ProductsPage';
 
 // Crew pages
 import CrewHome from './pages/crew/CrewHome';
@@ -107,20 +96,19 @@ function App() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const getDefaultRoute = () => {
-    if (!isAuthenticated || !user) return '/auth/login';
-    switch (user.role) {
-      case 'ADMIN':
-      case 'STORE_MANAGER':
-        return '/app/dashboard';
-      case 'WAREHOUSE_MANAGER':
-        return '/app/inventory';
-      case 'CREW':
-        return '/crew';
-      default:
-        return '/auth/login';
-    }
-  };
+const getDefaultRoute = () => {
+  if (!isAuthenticated || !user) return '/auth/login';
+  switch (user.role) {
+    case 'ADMIN':
+    case 'STORE_MANAGER':
+      return '/app/dashboard';
+    case 'CREW':
+      return '/crew';
+    default:
+      return '/app/dashboard';
+  }
+};
+
 
   return (
     <ErrorBoundary>
@@ -149,10 +137,9 @@ function App() {
                 <Route
                   path="dashboard"
                   element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER']}>
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
                       {user?.role === 'ADMIN' && <AdminDashboard />}
                       {user?.role === 'STORE_MANAGER' && <ManagerDashboard />}
-                      {user?.role === 'WAREHOUSE_MANAGER' && <WarehouseDashboard />}
                     </RoleGuard>
                   }
                 />
@@ -188,7 +175,7 @@ function App() {
                 <Route
                   path="installations"
                   element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER']}>
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
                       <InstallationsPage />
                     </RoleGuard>
                   }
@@ -196,7 +183,7 @@ function App() {
                 <Route
                   path="installations/:id"
                   element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER']}>
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
                       <InstallationDetailPage />
                     </RoleGuard>
                   }
@@ -216,78 +203,6 @@ function App() {
                   element={
                     <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
                       <CalendarPage />
-                    </RoleGuard>
-                  }
-                />
-
-                {/* Inventory */}
-                <Route
-                  path="inventory"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
-                      <InventoryPage />
-                    </RoleGuard>
-                  }
-                />
-
-                {/* Pick Lists */}
-                <Route
-                  path="picklists"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
-                      <PickListsPage />
-                    </RoleGuard>
-                  }
-                />
-                <Route
-                  path="picklists/:id"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
-                      <PickListDetailPage />
-                    </RoleGuard>
-                  }
-                />
-                <Route
-                  path="picklists/new"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
-                      <CreatePickListPage />
-                    </RoleGuard>
-                  }
-                />
-
-                {/* Customers */}
-                <Route
-                  path="customers"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
-                      <CustomersPage />
-                    </RoleGuard>
-                  }
-                />
-                <Route
-                  path="customers/:id"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
-                      <CustomerDetailPage />
-                    </RoleGuard>
-                  }
-                />
-                <Route
-                  path="customers/new"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
-                      <CreateCustomerPage />
-                    </RoleGuard>
-                  }
-                />
-
-                {/* Products */}
-                <Route
-                  path="products"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'WAREHOUSE_MANAGER']}>
-                      <ProductsPage />
                     </RoleGuard>
                   }
                 />

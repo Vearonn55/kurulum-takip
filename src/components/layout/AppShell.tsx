@@ -17,7 +17,6 @@ import {
   Menu,
   X,
   Shield,
-  Warehouse,
 } from 'lucide-react';
 
 import { useAuthStore } from '../../stores/auth-simple';
@@ -33,14 +32,10 @@ interface NavigationItem {
 }
 
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER'] },
+  { name: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'STORE_MANAGER'] },
   { name: 'Orders', href: '/app/orders', icon: ShoppingCart, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Installations', href: '/app/installations', icon: Package, roles: ['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER'] },
+  { name: 'Installations', href: '/app/installations', icon: Package, roles: ['ADMIN', 'STORE_MANAGER'] },
   { name: 'Calendar', href: '/app/calendar', icon: Calendar, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Inventory', href: '/app/inventory', icon: Warehouse, roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
-  { name: 'Pick Lists', href: '/app/picklists', icon: ClipboardList, roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
-  { name: 'Customers', href: '/app/customers', icon: Users, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Products', href: '/app/products', icon: Package, roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
   { name: 'Reports', href: '/app/reports', icon: BarChart3, roles: ['ADMIN', 'STORE_MANAGER'] },
   { name: 'Users & Roles', href: '/app/admin/users', icon: Shield, roles: ['ADMIN'] },
   { name: 'Integrations', href: '/app/admin/integrations', icon: Settings, roles: ['ADMIN'] },
@@ -71,8 +66,6 @@ export default function AppShell() {
         return 'Administrator';
       case 'STORE_MANAGER':
         return 'Store Manager';
-      case 'WAREHOUSE_MANAGER':
-        return 'Warehouse Manager';
       case 'CREW':
         return 'Installation Crew';
       default:

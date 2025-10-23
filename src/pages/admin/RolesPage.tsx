@@ -8,7 +8,7 @@ import type { User, UserRole } from '../../types';
 import { apiClient } from '../../lib/api';
 import { cn } from '../../lib/utils';
 
-const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER', 'CREW'];
+const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'CREW'];
 
 const CAPABILITIES: Record<UserRole, string[]> = {
   ADMIN: [
@@ -21,11 +21,6 @@ const CAPABILITIES: Record<UserRole, string[]> = {
     'Manage orders & installations for assigned store',
     'View reports & calendar',
     'Create customers & installations',
-  ],
-  WAREHOUSE_MANAGER: [
-    'Manage inventory & pick lists',
-    'View installations for logistics',
-    'Manage products',
   ],
   CREW: [
     'View assigned jobs in PWA',

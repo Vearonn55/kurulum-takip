@@ -9,7 +9,7 @@ import { apiClient } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/auth-simple';
 
-const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER', 'CREW'];
+const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'CREW'];
 
 export default function UsersPage() {
   const qc = useQueryClient();

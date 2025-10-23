@@ -43,8 +43,6 @@ export default function LoginPage() {
         return '/app/dashboard';
       case 'STORE_MANAGER':
         return '/app/dashboard';
-      case 'WAREHOUSE_MANAGER':
-        return '/app/inventory';
       case 'CREW':
         return '/crew';
       default:

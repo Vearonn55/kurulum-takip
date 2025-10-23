@@ -13,7 +13,7 @@ const ROLE_POS_KEY = 'DEV_ROLE_POS';
 const COLLAPSE_KEY = 'DEV_ROLE_COLLAPSED';
 
 const CORNERS: Corner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
-const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'WAREHOUSE_MANAGER', 'CREW'];
+const ROLES: UserRole[] = ['ADMIN', 'STORE_MANAGER', 'CREW'];
 
 function loadCorner(key: string, fallback: Corner): Corner {
   const v = localStorage.getItem(key) as Corner | null;
