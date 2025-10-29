@@ -36,7 +36,7 @@ const navigation: NavigationItem[] = [
   { name: 'Orders', href: '/app/orders', icon: ShoppingCart, roles: ['ADMIN', 'STORE_MANAGER'] },
   { name: 'Installations', href: '/app/installations', icon: Package, roles: ['ADMIN', 'STORE_MANAGER'] },
   { name: 'Calendar', href: '/app/calendar', icon: Calendar, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Reports', href: '/app/reports', icon: BarChart3, roles: ['ADMIN', 'STORE_MANAGER'] },
+  { name: 'Reports', href: '/app/admin/reports', icon: BarChart3, roles: ['ADMIN'] },
   { name: 'Users & Roles', href: '/app/admin/users', icon: Shield, roles: ['ADMIN'] },
   { name: 'Integrations', href: '/app/admin/integrations', icon: Settings, roles: ['ADMIN'] },
   { name: 'Audit', href: '/app/audit', icon: Shield, roles: ['ADMIN'] },

@@ -23,6 +23,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersPage from './pages/admin/UsersPage';
+import ReportsPage from './pages/admin/ReportsPage';
 import RolesPage from './pages/admin/RolesPage';
 import IntegrationsPage from './pages/admin/IntegrationsPage';
 import CapacitySettingsPage from './pages/admin/CapacitySettingsPage';
@@ -48,7 +49,6 @@ import CrewIssues from './pages/crew/CrewIssues';
 import CrewSettings from './pages/crew/CrewSettings';
 
 // Shared pages
-import ReportsPage from './pages/shared/ReportsPage';
 import AuditPage from './pages/shared/AuditPage';
 import NotFoundPage from './pages/shared/NotFoundPage';
 import ForbiddenPage from './pages/shared/ForbiddenPage';
@@ -207,16 +207,6 @@ const getDefaultRoute = () => {
                   }
                 />
 
-                {/* Reports */}
-                <Route
-                  path="reports"
-                  element={
-                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
-                      <ReportsPage />
-                    </RoleGuard>
-                  }
-                />
-
                 {/* Admin-only */}
                 <Route
                   path="admin/users"
@@ -224,8 +214,18 @@ const getDefaultRoute = () => {
                     <RoleGuard roles={['ADMIN']}>
                       <UsersPage />
                     </RoleGuard>
+                  } 
+                />
+
+                <Route
+                  path="admin/reports"
+                  element={
+                    <RoleGuard roles={['ADMIN']}>
+                      <ReportsPage />
+                    </RoleGuard>
                   }
                 />
+
                 <Route
                   path="admin/roles"
                   element={

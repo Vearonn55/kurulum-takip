@@ -209,10 +209,8 @@ export default function AdminDashboard() {
           </div>
         </a>
 
-        <a
-          href="/app/reports"
-          className="card hover:shadow-md transition-shadow cursor-pointer"
-        >
+          <a href="/app/admin/reports"
+           className="card hover:shadow-md transition-shadow cursor-pointer">
           <div className="card-content text-center">
             <TrendingUp className="h-8 w-8 text-primary-600 mx-auto mb-2" />
             <h3 className="text-sm font-medium text-gray-900">View Reports</h3>
