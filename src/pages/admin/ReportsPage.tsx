@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 /* ---------- Filters ---------- */
-type City = 'Nicosia' | 'Kyrenia' | 'Famagusta' | 'Iskele';
-type Store = 'All Stores' | 'Main Store' | 'Downtown' | 'Warehouse' | 'Outlet';
+type City = 'Nicosia' | 'Kyrenia' | 'Famagusta' | 'Iskele' | 'All Cities';
+type Store = 'All Stores' | 'Girne-Lajivert' | 'Lefkosa-Weltew' | 'Magusa-Weltew' | 'Lefkosa-Lajivert';
+type Difficulty = 'Easy' | 'Intermediate' | 'Hard';
 
 /* ---------- Mock data ---------- */
 type Installation = {
@@ -12,16 +13,19 @@ type Installation = {
   city: City;
   store: Exclude<Store, 'All Stores'>;
   date: string;           // ISO date (YYYY-MM-DD)
+  difficulty: Difficulty;
+  serviceAfter: boolean;
 };
 
 const MOCK_INSTALLATIONS: Installation[] = [
-  { id: 'INS-001', order_id: '1001', city: 'Nicosia',  store: 'Main Store', date: '2025-10-24' },
-  { id: 'INS-002', order_id: '1002', city: 'Kyrenia',  store: 'Downtown',   date: '2025-10-25' },
-  { id: 'INS-003', order_id: '1003', city: 'Famagusta',store: 'Warehouse',  date: '2025-10-26' },
-  { id: 'INS-004', order_id: '1004', city: 'Iskele',   store: 'Outlet',     date: '2025-10-27' },
-  { id: 'INS-005', order_id: '1005', city: 'Nicosia',  store: 'Downtown',   date: '2025-10-28' },
-  { id: 'INS-006', order_id: '1006', city: 'Kyrenia',  store: 'Main Store', date: '2025-10-29' },
+  { id: 'INS-001', order_id: '1001', city: 'Nicosia',  store: 'Girne-Lajivert', date: '2025-10-24', difficulty: 'Easy',          serviceAfter: true },
+  { id: 'INS-002', order_id: '1002', city: 'Kyrenia',  store: 'Lefkosa-Weltew',   date: '2025-10-25', difficulty: 'Intermediate',  serviceAfter: false },
+  { id: 'INS-003', order_id: '1003', city: 'Famagusta',store: 'Magusa-Weltew',  date: '2025-10-26', difficulty: 'Hard',         serviceAfter: true },
+  { id: 'INS-004', order_id: '1004', city: 'Iskele',   store: 'Lefkosa-Lajivert',     date: '2025-10-27', difficulty: 'Intermediate',  serviceAfter: false },
+  { id: 'INS-005', order_id: '1005', city: 'Nicosia',  store: 'Magusa-Weltew',   date: '2025-10-28', difficulty: 'Easy',          serviceAfter: true },
+  { id: 'INS-006', order_id: '1006', city: 'Kyrenia',  store: 'Girne-Lajivert', date: '2025-10-29', difficulty: 'Hard',         serviceAfter: false },
 ];
+
 
 
 
@@ -37,7 +41,7 @@ export default function ReportsPage() {
 
   const [startDate, setStartDate] = useState<string>(weekAgoStr);
   const [endDate, setEndDate] = useState<string>(todayStr);
-  const [city, setCity] = useState<City>('Nicosia');
+  const [city, setCity] = useState<City>('All Cities');
   const [store, setStore] = useState<Store>('All Stores');
 
   const navigate = useNavigate();
@@ -60,17 +64,38 @@ export default function ReportsPage() {
   const filtered = useMemo(() => {
     return MOCK_INSTALLATIONS.filter((ins) => {
       const matchDate = inDateRange(ins.date, startDate, endDate);
-      const matchCity = ins.city === city;
+      const matchCity = city === 'All Cities' ? true : ins.city === city;
       const matchStore = store === 'All Stores' ? true : ins.store === store;
       return matchDate && matchCity && matchStore;
     }).sort((a, b) => (a.date < b.date ? 1 : -1)); // newest first
   }, [startDate, endDate, city, store]);
 
-  // --- Statistics mock calculation ---
+  // --- Difficulty stats (based on filtered list) ---
+const weight: Record<Difficulty, number> = { Easy: 0, Intermediate: 0.5, Hard: 1 };
+
+let easyCount = 0, intermediateCount = 0, hardCount = 0, weightedSum = 0;
+for (const ins of filtered) {
+  if (ins.difficulty === 'Easy') easyCount++;
+  else if (ins.difficulty === 'Intermediate') intermediateCount++;
+  else hardCount++;
+  weightedSum += weight[ins.difficulty];
+}
+
+const totalForDifficulty = filtered.length;
+const avgDifficulty = totalForDifficulty ? (weightedSum / totalForDifficulty) * 100 : 0; // 0–100%
+const avgMarkerLeft = `${Math.min(Math.max(avgDifficulty, 0), 100)}%`; // keep within bounds
+
+
+
+// --- Service After Installation stats ---
 const totalInstallations = filtered.length;
-const successfulInstallations = Math.round(totalInstallations * 0.8); // mock: 80% success rate
-const successRate =
-  totalInstallations === 0 ? 0 : Math.round((successfulInstallations / totalInstallations) * 100);
+const serviceAfterCount = filtered.filter((ins) => ins.serviceAfter).length;
+
+
+  // --- Statistics mock calculation ---
+    const successfulInstallations = Math.round(totalInstallations * 0.8); // mock: 80% success rate
+    const successRate =
+    totalInstallations === 0 ? 0 : Math.round((successfulInstallations / totalInstallations) * 100);
 
   const fmt = (iso: string) =>
     new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {
@@ -123,6 +148,7 @@ const successRate =
                 onChange={(e) => setCity(e.target.value as City)}
                 className="border rounded-md px-2 py-1 text-sm"
                 >
+                <option value="All Cities">All Cities</option>
                 <option value="Nicosia">Nicosia</option>
                 <option value="Kyrenia">Kyrenia</option>
                 <option value="Famagusta">Famagusta</option>
@@ -140,10 +166,10 @@ const successRate =
                 className="border rounded-md px-2 py-1 text-sm"
                 >
                 <option>All Stores</option>
-                <option>Main Store</option>
-                <option>Downtown</option>
-                <option>Warehouse</option>
-                <option>Outlet</option>
+                <option>Girne-Lajivert</option>
+                <option>Lefkosa-Weltew</option>
+                <option>Lefkosa-Lajivert</option>
+                <option>Magusa-Weltew</option>
                 </select>
             </div>
             </div>
@@ -152,28 +178,100 @@ const successRate =
 
                 {/* Summary cards */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {/* Card 1 - Installation Success Rate */}
-        <div className="rounded-lg border bg-white p-4">
-            <h3 className="text-sm font-medium text-gray-700">Installation Success Rate</h3>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">{successRate}%</div>
+            {/* Card 1 - Installation Success Rate */}
+            <div className="rounded-lg border bg-white p-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Installations</h3>
+
+            {/* Successful installations number + label */}
+            <div className="flex flex-col">
+                <div className="text-5xl font-semibold text-gray-900 leading-tight">
+                {successfulInstallations}
+                </div>
+                <span className="text-sm text-gray-500 mt-1">
+                Total Successful Installations
+                </span>
+            </div>
+
+            {/* Divider line for clarity */}
+            <div className="my-3 border-t border-gray-200" />
+
+            {/* Percentage + label */}
+            <div className="flex items-end gap-2">
+                <div
+                className={`text-4xl font-semibold leading-none ${
+                    successRate >= 75
+                    ? 'text-green-600'
+                    : successRate >= 50
+                    ? 'text-yellow-500'
+                    : 'text-red-500'
+                }`}
+                >
+                {successRate}%
+                </div>
+                <span className="text-sm text-gray-500 mb-1">Success rate</span>
+            </div>
+            </div>
+
+
+
+
+ {/* Card 2 - Installation Difficulty Total */}
+<div className="rounded-lg border bg-white p-4 sm:col-span-1">
+  <h3 className="text-sm font-medium text-gray-700">Installation Difficulty Total</h3>
+
+  {/* Counts */}
+  <div className="mt-3 grid grid-cols-3 gap-2">
+    <div className="rounded-md border p-2 text-center">
+      <div className="text-xs font-medium text-gray-600">Easy</div>
+      <div className="mt-1 text-2xl font-semibold text-green-600">{easyCount}</div>
+    </div>
+    <div className="rounded-md border p-2 text-center">
+      <div className="text-xs font-medium text-gray-600">Intermediate</div>
+      <div className="mt-1 text-2xl font-semibold text-yellow-500">{intermediateCount}</div>
+    </div>
+    <div className="rounded-md border p-2 text-center">
+      <div className="text-xs font-medium text-gray-600">Hard</div>
+      <div className="mt-1 text-2xl font-semibold text-red-600">{hardCount}</div>
+    </div>
+  </div>
+
+  {/* Difficulty bar with percentage indicator */}
+  <div className="mt-5 relative h-5 w-full rounded-full overflow-hidden">
+    {/* Segments */}
+    <div className="absolute inset-0 flex">
+      <div className="flex-1 bg-green-500" title="Easy" />
+      <div className="flex-1 bg-yellow-400" title="Intermediate" />
+      <div className="flex-1 bg-red-500" title="Hard" />
+    </div>
+
+    {/* Average indicator */}
+    <div
+      className="absolute top-0 bottom-0 w-0.5 bg-gray-900"
+      style={{ left: avgMarkerLeft }}
+      title={`Average: ${avgDifficulty.toFixed(0)}%`}
+    />
+
+    {/* Overlayed percentage text */}
+    <div className="absolute inset-0 flex items-center justify-center">
+      <span className="text-sm font-medium text-white drop-shadow-sm">
+        {avgDifficulty.toFixed(0)}%
+      </span>
+    </div>
+  </div>
+</div>
+
+            {/* Card 3 - Service After Installation */}
+            <div className="rounded-lg border bg-white p-4">
+            <h3 className="text-sm font-medium text-gray-700">Service After Installation</h3>
+
+            <div className="mt-2 text-3xl font-semibold text-gray-900">
+                {totalInstallations} / {serviceAfterCount}
+            </div>
+
             <p className="mt-1 text-xs text-gray-500">
-            {successfulInstallations} successful / {totalInstallations} total
+                Total Installations / With Service After Installation
             </p>
-        </div>
-
-        {/* Card 2 - placeholder */}
-        <div className="rounded-lg border bg-white p-4">
-            <h3 className="text-sm font-medium text-gray-700">[Card 2]</h3>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">—</div>
-            <p className="mt-1 text-xs text-gray-500">Coming soon</p>
-        </div>
-
-        {/* Card 3 - placeholder */}
-        <div className="rounded-lg border bg-white p-4">
-            <h3 className="text-sm font-medium text-gray-700">[Card 3]</h3>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">—</div>
-            <p className="mt-1 text-xs text-gray-500">Coming soon</p>
-        </div>
+            </div>
         </div>
 
 
