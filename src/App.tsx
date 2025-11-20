@@ -49,6 +49,7 @@ import CrewIssues from './pages/crew/CrewIssues';
 import CrewSettings from './pages/crew/CrewSettings';
 
 // Shared pages
+import YourProfile from './pages/shared/YourProfile';
 import AuditPage from './pages/shared/AuditPage';
 import NotFoundPage from './pages/shared/NotFoundPage';
 import ForbiddenPage from './pages/shared/ForbiddenPage';
@@ -203,6 +204,16 @@ const getDefaultRoute = () => {
                   element={
                     <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
                       <CalendarPage />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Your profile*/}
+                <Route
+                  path="profile"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <YourProfile />
                     </RoleGuard>
                   }
                 />

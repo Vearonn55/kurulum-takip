@@ -249,7 +249,7 @@ export default function AppShell() {
                       <div className="text-gray-500">{user?.email}</div>
                       <div className="text-xs text-gray-400">{roleLabel(user?.role)}</div>
                     </div>
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="/app/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Your Profile
                     </a>
                     <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">

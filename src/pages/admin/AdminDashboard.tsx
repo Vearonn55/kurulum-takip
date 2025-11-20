@@ -623,7 +623,7 @@ export default function AdminDashboard() {
         </a>
 
         <a
-          href="/app/installations" //push test delete after ada
+          href="/app/installations"
           className="card hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="card-content text-center">
