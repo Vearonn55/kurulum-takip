@@ -1,20 +1,32 @@
 // src/pages/manager/CreateInstallationPage.tsx
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Calendar as CalendarIcon, Clock, Users as UsersIcon, FileText, Save, Search } from 'lucide-react';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  Save,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
-import type { User, Order } from '../../types';
-import { apiClient } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/auth-simple';
 
+import {
+  createInstallation,
+  assignCrew,
+  type InstallationCreate,
+} from '../../api/installations';
+import { listUsers, type User } from '../../api/users';
+import { listStores, type Store } from '../../api/stores';
+
 // ---------- helpers ----------
 const toISODateTime = (date: string, time: string) => {
-  // date: 'YYYY-MM-DD', time: 'HH:mm'
   if (!date || !time) return '';
-  // Local → ISO; backend should handle timezone if needed
   const [h, m] = time.split(':').map((v) => parseInt(v, 10));
   const dt = new Date(date);
   dt.setHours(h, m, 0, 0);
@@ -36,123 +48,143 @@ const DIFFICULTIES = [
   { value: 'hard', label: 'Hard' },
 ] as const;
 
+type DifficultyValue = (typeof DIFFICULTIES)[number]['value'];
+
 export default function CreateInstallationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const myStoreId = user?.role === 'STORE_MANAGER' ? user.store_id : undefined;
+
+  // store from auth (for managers)
+  const myStoreId = (user as any)?.store_id as string | undefined;
 
   // ----- form state -----
-  const [orderSearch, setOrderSearch] = useState('');
-  const [orderId, setOrderId] = useState<string>('');
+  const [externalOrderId, setExternalOrderId] = useState<string>('');
   const [date, setDate] = useState<string>('');
   const [timeStart, setTimeStart] = useState<string>('09:00');
   const [zone, setZone] = useState<string>('');
   const [crewIds, setCrewIds] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>('');
-  const [difficulty, setDifficulty] = useState<'' | 'easy' | 'intermediate' | 'hard'>('');
+  const [difficulty, setDifficulty] = useState<DifficultyValue | ''>('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(myStoreId ?? '');
 
-  // ----- data: orders (filter by store and optionally status) -----
-  const ordersQuery = useQuery({
-    queryKey: ['orders', { store_id: myStoreId ?? '', status: 'confirmed' }],
+  // ----- data: stores (for admins / multi-store setups) -----
+  const storesQuery = useQuery({
+    queryKey: ['stores', 'for-installation-create'],
     queryFn: async () => {
-      const res = await apiClient.getOrders({
-        store_id: myStoreId,
-        status: 'confirmed', // adjust if your backend uses different flow
-      });
-      return res.data as Order[];
+      const res = await listStores({ limit: 100, offset: 0 });
+      return res.data as Store[];
     },
     staleTime: 60_000,
   });
 
-  // quick client-side filter by order id
-  const filteredOrders = useMemo(() => {
-    const list = ordersQuery.data ?? [];
-    if (!orderSearch.trim()) return list.slice(0, 50);
-    const s = orderSearch.trim().toLowerCase();
-    return list.filter((o) => o.id.toLowerCase().includes(s)).slice(0, 50);
-  }, [ordersQuery.data, orderSearch]);
-
   // ----- data: crew list -----
   const crewQuery = useQuery({
-    queryKey: ['users', { role: 'CREW', store_id: myStoreId ?? '' }],
+    queryKey: ['users', 'crew-picker'],
     queryFn: async () => {
-      const res = await apiClient.getUsers({ role: 'CREW', store_id: myStoreId });
+      const res = await listUsers({ limit: 200, offset: 0 });
       return res.data as User[];
     },
     staleTime: 60_000,
   });
 
-  // ----- mutation: create installation -----
+  const toggleCrew = (id: string) => {
+    setCrewIds((prev) => {
+      const already = prev.includes(id);
+      if (already) {
+        return prev.filter((x) => x !== id);
+      }
+      if (prev.length >= 3) {
+        toast.error('You can assign up to 3 crew members');
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  // ----- mutation: create installation + assign crew -----
   const createMutation = useMutation({
     mutationFn: async () => {
+      const storeId = selectedStoreId || myStoreId;
+      if (!storeId) {
+        throw new Error('Store is required');
+      }
+
       const scheduled_start = toISODateTime(date, timeStart);
 
-      if (!orderId) throw new Error('Order is required');
+      if (!externalOrderId) throw new Error('External order ID is required');
       if (!date) throw new Error('Date is required');
       if (!timeStart) throw new Error('Start time is required');
       if (!difficulty) throw new Error('Installation difficulty is required');
 
-      // Append zone to notes so it shows downstream (Calendar/Detail)
-      const finalNotes = zone
-        ? `[Zone: ${ZONES.find((z) => z.value === zone)?.label ?? zone}] ${notes || ''}`.trim()
-        : notes;
+      // Build enriched notes (zone + difficulty + original notes)
+      const meta: string[] = [];
+      if (zone) {
+        const label = ZONES.find((z) => z.value === zone)?.label ?? zone;
+        meta.push(`Zone: ${label}`);
+      }
+      if (difficulty) {
+        const label =
+          DIFFICULTIES.find((d) => d.value === difficulty)?.label ??
+          difficulty;
+        meta.push(`Difficulty: ${label}`);
+      }
 
-      return apiClient.createInstallation({
-        order_id: orderId,
+      const metaPrefix = meta.length ? `[${meta.join(' | ')}] ` : '';
+      const finalNotes =
+        (metaPrefix + (notes || '')).trim() || undefined;
+
+      const payload: InstallationCreate = {
+        external_order_id: externalOrderId,
+        store_id: storeId,
         scheduled_start,
-        crew_user_ids: crewIds.length ? crewIds : undefined,
-        notes: finalNotes || undefined,
-         difficulty: difficulty || undefined,
-        items: [], // If backend requires, supply actual order item mappings later
-      });
+        notes: finalNotes ?? null,
+      };
+
+      // 1) Create the installation
+      const inst = await createInstallation(payload);
+
+      // 2) Assign crew (if any)
+      if (crewIds.length) {
+        await Promise.all(
+          crewIds.map((crewId) =>
+            assignCrew(inst.id, {
+              crew_user_id: crewId,
+              role: null,
+            })
+          )
+        );
+      }
+
+      return inst;
     },
-    onSuccess: async (res) => {
-      // Invalidate calendar data & installations list so the new one shows up
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['installations'] }),
-        queryClient.invalidateQueries({ queryKey: ['installations', { store_id: myStoreId }] }),
+        queryClient.invalidateQueries({
+          queryKey: ['installations', { store_id: selectedStoreId || myStoreId }],
+        }),
+        queryClient.invalidateQueries({ queryKey: ['calendar', 'installations'] }),
       ]);
 
       toast.success('Installation created');
-      // Go to calendar week that includes selected date
       navigate('/app/calendar');
     },
     onError: (err: any) => {
-      toast.error(err?.message || 'Failed to create installation');
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to create installation';
+      toast.error(msg);
     },
   });
 
-const toggleCrew = (id: string) => {
-  setCrewIds((prev) => {
-    const already = prev.includes(id);
-    if (already) {
-      return prev.filter((x) => x !== id);
-    }
-    if (prev.length >= 3) {
-      toast.error('You can assign up to 3 crew members');
-      return prev;
-    }
-    return [...prev, id];
-  });
-};
-  
-  const toggleTeamMember = (id: string) => {
-  setCrewIds((prev) => {
-    const already = prev.includes(id);
-    if (already) {
-      return prev.filter((x) => x !== id);
-    }
-    if (prev.length >= 3) {
-      toast.error('You can assign up to 3 crew members');
-      return prev;
-    }
-    return [...prev, id];
-  });
-};
-
   const canSubmit =
-    !!orderId && !!date && !!timeStart && !createMutation.isPending;
+    !!externalOrderId &&
+    !!date &&
+    !!timeStart &&
+    (!!selectedStoreId || !!myStoreId) &&
+    !createMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -164,49 +196,66 @@ const toggleCrew = (id: string) => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left column: main form */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Store selector (for admins) */}
+          <section className="card">
+            <div className="card-header">
+              <h3 className="card-title">Store</h3>
+              <p className="card-description">
+                Select the store where this installation belongs
+              </p>
+            </div>
+            <div className="card-content space-y-2">
+              <select
+                className="input w-full"
+                value={selectedStoreId}
+                onChange={(e) => setSelectedStoreId(e.target.value)}
+                disabled={!!myStoreId && !storesQuery.isError && !storesQuery.isLoading}
+              >
+                <option value="">
+                  {storesQuery.isLoading
+                    ? 'Loading stores…'
+                    : myStoreId
+                    ? 'Using your assigned store'
+                    : 'Select store'}
+                </option>
+                {(storesQuery.data ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              {storesQuery.isError && (
+                <p className="text-xs text-red-600">
+                  Failed to load stores. You may not be able to create installations.
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* External Order ID */}
           <section className="card">
             <div className="card-header">
               <h3 className="card-title">Order</h3>
-              <p className="card-description">Select the order to install</p>
+              <p className="card-description">
+                Enter the external order ID from the store system
+              </p>
             </div>
             <div className="card-content space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="h-4 w-4 absolute left-2 top-2.5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search order by ID..."
-                    className="pl-8 w-full input"
-                    value={orderSearch}
-                    onChange={(e) => setOrderSearch(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div>
-                <select
-                  className="input w-full"
-                  value={orderId}
-                  onChange={(e) => setOrderId(e.target.value)}
-                >
-                  <option value="" disabled>
-                    {ordersQuery.isLoading ? 'Loading orders…' : 'Select order'}
-                  </option>
-                  {filteredOrders.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.id}
-                    </option>
-                  ))}
-                </select>
-                {ordersQuery.isError && (
-                  <p className="text-sm text-red-600 mt-1">
-                    Failed to load orders.
-                  </p>
-                )}
-              </div>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-gray-700">
+                  External Order ID
+                </span>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. 1234, 2025-0001, POS-ABC-999…"
+                  value={externalOrderId}
+                  onChange={(e) => setExternalOrderId(e.target.value)}
+                />
+              </label>
             </div>
           </section>
 
@@ -216,9 +265,9 @@ const toggleCrew = (id: string) => {
               <h3 className="card-title">Schedule</h3>
               <p className="card-description">Pick date and time</p>
             </div>
-            <div className="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="card-content grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <CalendarIcon className="h-4 w-4 text-gray-500" />
                   Date
                 </span>
@@ -231,7 +280,7 @@ const toggleCrew = (id: string) => {
               </label>
 
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Clock className="h-4 w-4 text-gray-500" />
                   Start time
                 </span>
@@ -268,55 +317,62 @@ const toggleCrew = (id: string) => {
           </section>
 
           {/* Installation Difficulty */}
-<section className="card">
-  <div className="card-header">
-    <h3 className="card-title">Installation Difficulty</h3>
-    <p className="card-description">Select one option</p>
-  </div>
-  <div className="card-content space-y-3">
-    <div className="flex flex-wrap gap-2">
-      {DIFFICULTIES.map((d) => {
-        const selected = difficulty === d.value;
-        return (
-          <button
-            key={d.value}
-            type="button"
-            onClick={() => setDifficulty(d.value)}
-            className={cn(
-              'px-3 py-1.5 rounded-md border text-sm transition',
-              selected
-                ? 'bg-primary-600 text-white border-primary-600'
-                : 'bg-white hover:bg-gray-50 border-gray-300'
-            )}
-            aria-pressed={selected}
-          >
-            {d.label}
-          </button>
-        );
-      })}
-    </div>
+          <section className="card">
+            <div className="card-header">
+              <h3 className="card-title">Installation Difficulty</h3>
+              <p className="card-description">Select one option</p>
+            </div>
+            <div className="card-content space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {DIFFICULTIES.map((d) => {
+                  const selected = difficulty === d.value;
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => setDifficulty(d.value)}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-sm transition',
+                        selected
+                          ? 'border-primary-600 bg-primary-600 text-white'
+                          : 'border-gray-300 bg-white hover:bg-gray-50'
+                      )}
+                      aria-pressed={selected}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-    {/* Selected value */}
-    <div className="mt-1">
-      {difficulty ? (
-        <p className="text-sm text-gray-700">
-          Selected: <span className="font-medium">
-            {DIFFICULTIES.find((x) => x.value === difficulty)?.label}
-          </span>
-        </p>
-      ) : (
-        <p className="text-sm text-gray-500">No difficulty selected.</p>
-      )}
-    </div>
-  </div>
-</section>
-
+              <div className="mt-1">
+                {difficulty ? (
+                  <p className="text-sm text-gray-700">
+                    Selected:{' '}
+                    <span className="font-medium">
+                      {
+                        DIFFICULTIES.find(
+                          (x) => x.value === difficulty
+                        )?.label
+                      }
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No difficulty selected.
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
 
           {/* Notes */}
           <section className="card">
             <div className="card-header">
               <h3 className="card-title">Notes</h3>
-              <p className="card-description">Special instructions for the crew</p>
+              <p className="card-description">
+                Special instructions for the crew
+              </p>
             </div>
             <div className="card-content">
               <textarea
@@ -338,70 +394,73 @@ const toggleCrew = (id: string) => {
               <h3 className="card-title">Assign Crew</h3>
               <p className="card-description">Select up to 3 crew members</p>
             </div>
-          <div className="card-content space-y-3">
-  {/* Loading / errors / empty states */}
-  {crewQuery.isLoading && (
-    <p className="text-sm text-gray-500">Loading crew…</p>
-  )}
-  {crewQuery.isError && (
-    <p className="text-sm text-red-600">Failed to load crew.</p>
-  )}
+            <div className="card-content space-y-3">
+              {crewQuery.isLoading && (
+                <p className="text-sm text-gray-500">Loading crew…</p>
+              )}
+              {crewQuery.isError && (
+                <p className="text-sm text-red-600">
+                  Failed to load crew.
+                </p>
+              )}
 
-  {/* Picker bar */}
-  <div className="flex flex-wrap gap-2">
-    {(crewQuery.data ?? []).map((c) => {
-      const selected = crewIds.includes(c.id);
-      const atLimit = crewIds.length >= 3 && !selected;
-      return (
-        <button
-          key={c.id}
-          type="button"
-          onClick={() => toggleCrew(c.id)}
-          className={cn(
-            'px-3 py-1.5 rounded-md border text-sm transition',
-            selected
-              ? 'bg-primary-600 text-white border-primary-600'
-              : 'bg-white hover:bg-gray-50 border-gray-300',
-            atLimit && 'opacity-50 cursor-not-allowed'
-          )}
-          disabled={atLimit}
-          title={atLimit ? 'Maximum 3 members' : undefined}
-        >
-          {c.name ?? c.email ?? c.id}
-        </button>
-      );
-    })}
-  </div>
+              <div className="flex flex-wrap gap-2">
+                {(crewQuery.data ?? []).map((c) => {
+                  const selected = crewIds.includes(c.id);
+                  const atLimit = crewIds.length >= 3 && !selected;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => toggleCrew(c.id)}
+                      className={cn(
+                        'rounded-md border px-3 py-1.5 text-sm transition',
+                        selected
+                          ? 'border-primary-600 bg-primary-600 text-white'
+                          : 'border-gray-300 bg-white hover:bg-gray-50',
+                        atLimit && 'cursor-not-allowed opacity-50'
+                      )}
+                      disabled={atLimit}
+                      title={atLimit ? 'Maximum 3 members' : undefined}
+                    >
+                      {c.name ?? c.email ?? c.id}
+                    </button>
+                  );
+                })}
+              </div>
 
-  {/* Selected members */}
-  <div className="mt-2">
-    {crewIds.length === 0 ? (
-      <p className="text-sm text-gray-500">No crew selected yet.</p>
-    ) : (
-      <div className="flex flex-wrap gap-2">
-        {(crewQuery.data ?? [])
-          .filter((c) => crewIds.includes(c.id))
-          .map((c) => (
-            <span
-              key={c.id}
-              className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm bg-white"
-            >
-              {c.name ?? c.email ?? c.id}
-              <button
-                type="button"
-                onClick={() => toggleCrew(c.id)}
-                className="text-gray-500 hover:text-gray-700"
-                aria-label={`Remove ${c.name ?? c.email ?? c.id}`}
-                title="Remove"
-              >
-                ✕
-              </button>
-            </span>
-          ))}
-      </div>
-    )}
-  </div>
-</div>  
+              <div className="mt-2">
+                {crewIds.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No crew selected yet.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(crewQuery.data ?? [])
+                      .filter((c) => crewIds.includes(c.id))
+                      .map((c) => (
+                        <span
+                          key={c.id}
+                          className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-sm"
+                        >
+                          {c.name ?? c.email ?? c.id}
+                          <button
+                            type="button"
+                            onClick={() => toggleCrew(c.id)}
+                            className="text-gray-500 hover:text-gray-700"
+                            aria-label={`Remove ${
+                              c.name ?? c.email ?? c.id
+                            }`}
+                            title="Remove"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
 
           {/* Actions */}
@@ -412,16 +471,24 @@ const toggleCrew = (id: string) => {
             </div>
             <div className="card-content">
               <button
-                className="btn btn-primary w-full inline-flex items-center justify-center gap-2"
+                className="btn btn-primary inline-flex w-full items-center justify-center gap-2"
                 onClick={() => createMutation.mutate()}
                 disabled={!canSubmit}
               >
-                <Save className={cn('h-4 w-4', createMutation.isPending && 'animate-pulse')} />
-                {createMutation.isPending ? 'Scheduling…' : 'Create Installation'}
+                <Save
+                  className={cn(
+                    'h-4 w-4',
+                    createMutation.isPending && 'animate-pulse'
+                  )}
+                />
+                {createMutation.isPending
+                  ? 'Scheduling…'
+                  : 'Create Installation'}
               </button>
               {!canSubmit && (
-                <p className="text-xs text-gray-500 mt-2">
-                  Select order, date and time to enable.
+                <p className="mt-2 text-xs text-gray-500">
+                  Select store, enter external order ID, date and time
+                  to enable.
                 </p>
               )}
             </div>

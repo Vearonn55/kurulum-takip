@@ -1,6 +1,8 @@
+// src/stores/auth-simple.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '../types';
+import { getCurrentUser } from '../api/auth';
 
 interface AuthState {
   user: User | null;
@@ -66,10 +68,10 @@ export const useAuthStore = create<AuthStore>()(
       // Actions
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
+        // Simulate API delay (frontend-only mock; real cookie login is done via /api/auth)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // Mock authentication - accept any email/password for demo
         const mockUser: User = {
           id: '1',
@@ -82,7 +84,7 @@ export const useAuthStore = create<AuthStore>()(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        
+
         set({
           user: mockUser,
           isAuthenticated: true,
@@ -107,7 +109,7 @@ export const useAuthStore = create<AuthStore>()(
       hasPermission: (permission: string) => {
         const { user } = get();
         if (!user) return false;
-        
+
         const userPermissions = ROLE_PERMISSIONS[user.role] || [];
         return userPermissions.includes(permission);
       },
@@ -133,8 +135,43 @@ export const useAuthStore = create<AuthStore>()(
 );
 
 // Simple initialization function
+// Now attempts to restore session from backend /auth/me using the sid cookie.
 export const initializeAuth = async () => {
-  // For demo purposes, we'll just check if user is already logged in
-  const { user, isAuthenticated } = useAuthStore.getState();
-  return { user, isAuthenticated };
+  const state = useAuthStore.getState();
+
+  try {
+    // This will succeed if sid cookie is valid (user has an active session)
+    const me: any = await getCurrentUser();
+
+    // If we already had a user in local storage, keep it.
+    // Otherwise, create a minimal user object from /auth/me and cast to User.
+    const mappedUser: User =
+      state.user ??
+      ({
+        id: me.id,
+        // We don't get email from /auth/me; keep it empty or from existing state
+        email: state.user?.email ?? '',
+        firstName: state.user?.firstName ?? '',
+        lastName: state.user?.lastName ?? '',
+        role: (me.role?.toUpperCase?.() || 'ADMIN') as UserRole,
+        storeId: state.user?.storeId ?? '',
+        isActive: true,
+        createdAt: state.user?.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as User);
+
+    useAuthStore.setState({
+      ...state,
+      user: mappedUser,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
+
+    return { user: mappedUser, isAuthenticated: true };
+  } catch (err) {
+    // If /auth/me fails (401 or other), just return whatever we had persisted.
+    // This keeps behavior stable in dev if there's no session yet.
+    return { user: state.user, isAuthenticated: state.isAuthenticated };
+  }
 };

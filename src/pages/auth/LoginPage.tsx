@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 import { useAuthStore } from '../../stores/auth-simple';
+import { login as apiLogin } from '../../api/auth';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -18,26 +19,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { isAuthenticated, user, login, isLoading, error, clearError } = useAuthStore();
   const location = useLocation();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      const from = location.state?.from?.pathname || getDefaultRoute();
-      window.location.href = from;
-    }
-  }, [isAuthenticated, user, location]);
+  const navigate = useNavigate();
 
   const getDefaultRoute = () => {
     if (!user) return '/app/dashboard';
-    
+
     switch (user.role) {
       case 'ADMIN':
         return '/app/dashboard';
@@ -50,18 +36,40 @@ export default function LoginPage() {
     }
   };
 
+  // Redirect if already authenticated (run once when auth state changes)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const from =
+        (location.state as any)?.from?.pathname ||
+        getDefaultRoute();
+
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, user, location, navigate]);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  });
+
   const onSubmit = async (data: LoginForm) => {
     try {
       clearError();
+      // Call backend API to set session cookie
+      await apiLogin({
+        email: data.email,
+        password: data.password,
+      });
+      // Update frontend auth store state
       await login(data.email, data.password);
+      // Redirect will be handled by the useEffect above when isAuthenticated flips to true
     } catch (error) {
       // Error is handled by the store
     }
   };
-
-  if (isAuthenticated) {
-    return <Navigate to={getDefaultRoute()} replace />;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

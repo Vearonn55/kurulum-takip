@@ -15,9 +15,18 @@ import {
   AlertTriangle,
   Wrench,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+
 import { cn } from '../../lib/utils';
+import {
+  listInstallations,
+  type Installation,
+  type InstallStatus,
+} from '../../api/installations';
+import { listStores, type Store } from '../../api/stores';
 
 /* -------------------------------- Types -------------------------------- */
+// UI status (we map backend → UI)
 type InstallationStatus =
   | 'pending'
   | 'staged'
@@ -26,119 +35,78 @@ type InstallationStatus =
   | 'failed'
   | 'cancelled';
 
-type Zone = 'Nicosia' | 'Famagusta' | 'Kyrenia' | 'Morphou' | 'Iskele';
+// "Zone" here is effectively city name coming from store.address.city
+type Zone = string;
 
-type MockInstallation = {
+type Row = {
   id: string;
-  order_id: string;
-  customer: string;
-  zone: Zone;
   status: InstallationStatus;
-  start: string; // ISO
-  end: string;   // ISO
-  address: string;
-  crew: string[]; // names
+  start: string | null;
+  end: string | null;
+  externalOrderId: string;
+  storeName: string;
+  city?: string;
+  addressLine?: string;
+  crewCount: number;
 };
 
-/* ----------------------------- Mock helpers ---------------------------- */
+/* ----------------------------- Helpers ---------------------------- */
 function ymd(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
-function at(d: Date, h: number, m = 0) {
-  const n = new Date(d);
-  n.setHours(h, m, 0, 0);
-  return n.toISOString();
-}
-function fmt(dtIso: string) {
-  const d = new Date(dtIso);
-  return d.toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+function ymdFromIso(iso: string) {
+  return iso.split('T')[0] ?? '';
 }
 
-/* ------------------------------- Mock data ------------------------------ */
-function makeMock(dayISO: string): MockInstallation[] {
-  const day = new Date(dayISO);
-  return [
-    {
-      id: 'INST-20001',
-      order_id: 'ORD-10001',
-      customer: 'Ali Demir',
-      zone: 'Nicosia',
-      status: 'completed',
-      start: at(day, 9, 0),
-      end: at(day, 11, 0),
-      address: 'Atatürk Cad. 18, Nicosia',
-      crew: ['Team A'],
-    },
-    {
-      id: 'INST-20002',
-      order_id: 'ORD-10002',
-      customer: 'Selin Kaya',
-      zone: 'Famagusta',
-      status: 'in_progress',
-      start: at(day, 11, 30),
-      end: at(day, 13, 0),
-      address: 'Ece Sk. 12, Famagusta',
-      crew: ['Team B'],
-    },
-    {
-      id: 'INST-20003',
-      order_id: 'ORD-10004',
-      customer: 'Mete Aydın',
-      zone: 'Kyrenia',
-      status: 'staged',
-      start: at(day, 14, 0),
-      end: at(day, 16, 0),
-      address: 'Zeytinlik Mah., Kyrenia',
-      crew: ['Team C'],
-    },
-    {
-      id: 'INST-20004',
-      order_id: 'ORD-10005',
-      customer: 'Deniz Arslan',
-      zone: 'Nicosia',
-      status: 'pending',
-      start: at(day, 16, 30),
-      end: at(day, 18, 0),
-      address: 'Dr. Fazıl Küçük Bul., Nicosia',
-      crew: [],
-    },
-    {
-      id: 'INST-20005',
-      order_id: 'ORD-10006',
-      customer: 'Bora Kar',
-      zone: 'Morphou',
-      status: 'failed',
-      start: at(day, 10, 0),
-      end: at(day, 12, 0),
-      address: 'Şht. Sk. 5, Morphou',
-      crew: ['Team A'],
-    },
-    {
-      id: 'INST-20006',
-      order_id: 'ORD-10007',
-      customer: 'Ece Yıldız',
-      zone: 'Iskele',
-      status: 'cancelled',
-      start: at(day, 9, 30),
-      end: at(day, 10, 30),
-      address: 'Sahil Yolu, Iskele',
-      crew: [],
-    },
-    {
-      id: 'INST-20007',
-      order_id: 'ORD-10008',
-      customer: 'Can Er',
-      zone: 'Nicosia',
-      status: 'staged',
-      start: at(day, 12, 30),
-      end: at(day, 14, 0),
-      address: 'Girne Kapısı, Nicosia',
-      crew: ['Team D'],
-    },
-  ];
+function fmt(dtIso: string | null) {
+  if (!dtIso) return '—';
+  const d = new Date(dtIso);
+  return d.toLocaleString([], {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function mapBackendStatusToUi(status: InstallStatus | string): InstallationStatus {
+  switch (status) {
+    case 'in_progress':
+      return 'in_progress';
+    case 'completed':
+      return 'completed';
+    case 'failed':
+      return 'failed';
+    case 'canceled':
+      return 'cancelled';
+    // backend has "scheduled"; UI shows that as "Pending"
+    case 'scheduled':
+    default:
+      return 'pending';
+  }
+}
+
+function makeRow(inst: Installation, store?: Store): Row {
+  const uiStatus = mapBackendStatusToUi(inst.status);
+  const addr = store?.address;
+
+  return {
+    id: inst.id,
+    status: uiStatus,
+    start: inst.scheduled_start ?? null,
+    end: inst.scheduled_end ?? null,
+    externalOrderId: inst.external_order_id,
+    storeName: store?.name ?? inst.store_id,
+    city: addr?.city,
+    addressLine: addr?.line1,
+    // if backend later embeds crew array, we’ll pick it up here
+    crewCount: Array.isArray(inst.crew) ? inst.crew.length : 0,
+  };
 }
 
 /* --------------------------------- Page -------------------------------- */
@@ -158,62 +126,122 @@ export default function InstallationsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 6;
 
-  // Build a mock list for each day in range
-  const data = useMemo(() => {
-    const start = new Date(from);
-    const end = new Date(to);
-    const list: MockInstallation[] = [];
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      list.push(...makeMock(ymd(d)));
+  // Fetch installations (we use a reasonable limit and filter locally by date/search)
+  const installationsQuery = useQuery({
+    queryKey: ['installations'],
+    queryFn: async () => {
+      // listInstallations returns InstallationList { data, limit, offset }
+      const res = await listInstallations({ limit: 200, offset: 0 });
+      return res;
+    },
+  });
+
+  // Fetch stores (for name + address.city)
+  const storesQuery = useQuery({
+    queryKey: ['stores'],
+    queryFn: async () => {
+      const res = await listStores({ limit: 200, offset: 0 });
+      return res;
+    },
+  });
+
+  const storesById = useMemo(() => {
+    const m = new Map<string, Store>();
+    (storesQuery.data?.data ?? []).forEach((s) => m.set(s.id, s));
+    return m;
+  }, [storesQuery.data]);
+
+  // Build row objects from API data
+  const allRows: Row[] = useMemo(() => {
+    const insts: Installation[] = installationsQuery.data?.data ?? [];
+    return insts.map((inst) => makeRow(inst, storesById.get(inst.store_id)));
+  }, [installationsQuery.data, storesById]);
+
+  // Zone options from store.address.city
+  const zoneOptions: Zone[] = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of allRows) {
+      if (r.city) set.add(r.city);
     }
-    return list;
-  }, [from, to]);
+    return Array.from(set).sort();
+  }, [allRows]);
 
   const filtered = useMemo(() => {
-    let list = data.slice();
+    let list = allRows.slice();
 
+    // Date filter (by scheduled_start)
+    if (from) {
+      list = list.filter((r) => !r.start || ymdFromIso(r.start) >= from);
+    }
+    if (to) {
+      list = list.filter((r) => !r.start || ymdFromIso(r.start) <= to);
+    }
+
+    // Search text
     if (q.trim()) {
       const s = q.toLowerCase();
-      list = list.filter(
-        (r) =>
+      list = list.filter((r) => {
+        return (
           r.id.toLowerCase().includes(s) ||
-          r.order_id.toLowerCase().includes(s) ||
-          r.customer.toLowerCase().includes(s) ||
-          r.address.toLowerCase().includes(s) ||
-          r.crew.join(',').toLowerCase().includes(s)
-      );
+          r.externalOrderId.toLowerCase().includes(s) ||
+          r.storeName.toLowerCase().includes(s) ||
+          (r.addressLine ?? '').toLowerCase().includes(s) ||
+          (r.city ?? '').toLowerCase().includes(s)
+        );
+      });
     }
-    if (status !== 'all') list = list.filter((r) => r.status === status);
-    if (zone !== 'all') list = list.filter((r) => r.zone === zone);
 
+    // Status filter
+    if (status !== 'all') {
+      list = list.filter((r) => r.status === status);
+    }
+
+    // Zone filter (by city)
+    if (zone !== 'all') {
+      list = list.filter((r) => r.city === zone);
+    }
+
+    // Sorting
     list.sort((a, b) => {
       switch (sortBy) {
-        case 'start':
-          return sortDir === 'asc' ? a.start.localeCompare(b.start) : b.start.localeCompare(a.start);
-        case 'customer':
-          return sortDir === 'asc' ? a.customer.localeCompare(b.customer) : b.customer.localeCompare(a.customer);
-        case 'zone':
-          return sortDir === 'asc' ? a.zone.localeCompare(b.zone) : b.zone.localeCompare(a.zone);
-        case 'status':
-          return sortDir === 'asc' ? statusRank(a.status) - statusRank(b.status) : statusRank(b.status) - statusRank(a.status);
+        case 'start': {
+          const as = a.start ?? '';
+          const bs = b.start ?? '';
+          return sortDir === 'asc' ? as.localeCompare(bs) : bs.localeCompare(as);
+        }
+        case 'customer': {
+          const an = a.storeName;
+          const bn = b.storeName;
+          return sortDir === 'asc' ? an.localeCompare(bn) : bn.localeCompare(an);
+        }
+        case 'zone': {
+          const az = a.city ?? '';
+          const bz = b.city ?? '';
+          return sortDir === 'asc' ? az.localeCompare(bz) : bz.localeCompare(az);
+        }
+        case 'status': {
+          return sortDir === 'asc'
+            ? statusRank(a.status) - statusRank(b.status)
+            : statusRank(b.status) - statusRank(a.status);
+        }
       }
     });
 
     return list;
-  }, [data, q, status, zone, sortBy, sortDir]);
+  }, [allRows, q, status, zone, sortBy, sortDir, from, to]);
 
   const counts = useMemo(() => {
     const c: Record<InstallationStatus | 'all', number> = {
-      all: data.length,
-      pending: data.filter((r) => r.status === 'pending').length,
-      staged: data.filter((r) => r.status === 'staged').length,
-      in_progress: data.filter((r) => r.status === 'in_progress').length,
-      completed: data.filter((r) => r.status === 'completed').length,
-      failed: data.filter((r) => r.status === 'failed').length,
-      cancelled: data.filter((r) => r.status === 'cancelled').length,
+      all: allRows.length,
+      pending: allRows.filter((r) => r.status === 'pending').length,
+      staged: allRows.filter((r) => r.status === 'staged').length,
+      in_progress: allRows.filter((r) => r.status === 'in_progress').length,
+      completed: allRows.filter((r) => r.status === 'completed').length,
+      failed: allRows.filter((r) => r.status === 'failed').length,
+      cancelled: allRows.filter((r) => r.status === 'cancelled').length,
     };
     return c;
-  }, [data]);
+  }, [allRows]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -235,7 +263,9 @@ export default function InstallationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Installations</h1>
-          <p className="mt-1 text-sm text-gray-500">Schedule status and progress for upcoming jobs.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Schedule status and progress for upcoming jobs.
+          </p>
         </div>
         <button
           onClick={goCreate}
@@ -254,7 +284,7 @@ export default function InstallationsPage() {
             <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               className="input w-full pl-8"
-              placeholder="Installation ID, order ID, customer, address, crew…"
+              placeholder="Installation ID, external order ID, store, address…"
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -288,7 +318,7 @@ export default function InstallationsPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-600">Zone</label>
+          <label className="mb-1 block text-xs text-gray-600">Zone (city)</label>
           <div className="relative">
             <MapPin className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <select
@@ -300,7 +330,7 @@ export default function InstallationsPage() {
               }}
             >
               <option value="all">All zones</option>
-              {(['Nicosia', 'Famagusta', 'Kyrenia', 'Morphou', 'Iskele'] as Zone[]).map((z) => (
+              {zoneOptions.map((z) => (
                 <option key={z} value={z}>
                   {z}
                 </option>
@@ -314,14 +344,30 @@ export default function InstallationsPage() {
             <label className="mb-1 block text-xs text-gray-600">From</label>
             <div className="relative">
               <CalendarIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <input type="date" className="input w-full pl-8" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} />
+              <input
+                type="date"
+                className="input w-full pl-8"
+                value={from}
+                onChange={(e) => {
+                  setFrom(e.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
           <div>
             <label className="mb-1 block text-xs text-gray-600">To</label>
             <div className="relative">
               <CalendarIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <input type="date" className="input w-full pl-8" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} />
+              <input
+                type="date"
+                className="input w-full pl-8"
+                value={to}
+                onChange={(e) => {
+                  setTo(e.target.value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -329,13 +375,81 @@ export default function InstallationsPage() {
 
       {/* Status quick filters */}
       <div className="flex flex-wrap gap-2">
-        <QuickChip label="All" value={counts.all} active={status === 'all'} onClick={() => { setStatus('all'); setPage(1); }} />
-        <QuickChip label="Pending" value={counts.pending} tone="gray" icon={<Clock className="h-3.5 w-3.5" />} active={status === 'pending'} onClick={() => { setStatus('pending'); setPage(1); }} />
-        <QuickChip label="Staged" value={counts.staged} tone="blue" icon={<Wrench className="h-3.5 w-3.5" />} active={status === 'staged'} onClick={() => { setStatus('staged'); setPage(1); }} />
-        <QuickChip label="In progress" value={counts.in_progress} tone="amber" icon={<Clock className="h-3.5 w-3.5" />} active={status === 'in_progress'} onClick={() => { setStatus('in_progress'); setPage(1); }} />
-        <QuickChip label="Completed" value={counts.completed} tone="emerald" icon={<CheckCircle2 className="h-3.5 w-3.5" />} active={status === 'completed'} onClick={() => { setStatus('completed'); setPage(1); }} />
-        <QuickChip label="Failed" value={counts.failed} tone="rose" icon={<AlertTriangle className="h-3.5 w-3.5" />} active={status === 'failed'} onClick={() => { setStatus('failed'); setPage(1); }} />
-        <QuickChip label="Cancelled" value={counts.cancelled} tone="zinc" icon={<XCircle className="h-3.5 w-3.5" />} active={status === 'cancelled'} onClick={() => { setStatus('cancelled'); setPage(1); }} />
+        <QuickChip
+          label="All"
+          value={counts.all}
+          active={status === 'all'}
+          onClick={() => {
+            setStatus('all');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label="Pending"
+          value={counts.pending}
+          tone="gray"
+          icon={<Clock className="h-3.5 w-3.5" />}
+          active={status === 'pending'}
+          onClick={() => {
+            setStatus('pending');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label="Staged"
+          value={counts.staged}
+          tone="blue"
+          icon={<Wrench className="h-3.5 w-3.5" />}
+          active={status === 'staged'}
+          onClick={() => {
+            setStatus('staged');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label="In progress"
+          value={counts.in_progress}
+          tone="amber"
+          icon={<Clock className="h-3.5 w-3.5" />}
+          active={status === 'in_progress'}
+          onClick={() => {
+            setStatus('in_progress');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label="Completed"
+          value={counts.completed}
+          tone="emerald"
+          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+          active={status === 'completed'}
+          onClick={() => {
+            setStatus('completed');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label="Failed"
+          value={counts.failed}
+          tone="rose"
+          icon={<AlertTriangle className="h-3.5 w-3.5" />}
+          active={status === 'failed'}
+          onClick={() => {
+            setStatus('failed');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label="Cancelled"
+          value={counts.cancelled}
+          tone="zinc"
+          icon={<XCircle className="h-3.5 w-3.5" />}
+          active={status === 'cancelled'}
+          onClick={() => {
+            setStatus('cancelled');
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* Table */}
@@ -343,19 +457,53 @@ export default function InstallationsPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600">
             <tr>
-              <Th label="Start" active={sortBy === 'start'} dir={sortDir} onClick={() => toggleSort('start')} />
+              <Th
+                label="Start"
+                active={sortBy === 'start'}
+                dir={sortDir}
+                onClick={() => toggleSort('start')}
+              />
               <th className="px-3 py-2 text-left">Installation</th>
-              <Th label="Customer" active={sortBy === 'customer'} dir={sortDir} onClick={() => toggleSort('customer')} />
-              <Th label="Zone" active={sortBy === 'zone'} dir={sortDir} onClick={() => toggleSort('zone')} />
-              <Th label="Status" active={sortBy === 'status'} dir={sortDir} onClick={() => toggleSort('status')} />
+              <Th
+                label="Store"
+                active={sortBy === 'customer'}
+                dir={sortDir}
+                onClick={() => toggleSort('customer')}
+              />
+              <Th
+                label="Zone"
+                active={sortBy === 'zone'}
+                dir={sortDir}
+                onClick={() => toggleSort('zone')}
+              />
+              <Th
+                label="Status"
+                active={sortBy === 'status'}
+                dir={sortDir}
+                onClick={() => toggleSort('status')}
+              />
               <th className="w-28 px-3 py-2 text-left">Crew</th>
               <th className="w-24 px-3 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {paged.length === 0 ? (
+            {installationsQuery.isLoading ? (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">No installations match the filters.</td>
+                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
+                  Loading installations…
+                </td>
+              </tr>
+            ) : installationsQuery.isError ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-red-600">
+                  Failed to load installations.
+                </td>
+              </tr>
+            ) : paged.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
+                  No installations match the filters.
+                </td>
               </tr>
             ) : (
               paged.map((r) => (
@@ -367,27 +515,38 @@ export default function InstallationsPage() {
                     </div>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="font-medium text-gray-900">{r.id}</div>
-                    <div className="text-xs text-gray-500">{r.order_id}</div>
+                    <div className="font-medium text-gray-900">
+                      {r.externalOrderId || r.id}
+                    </div>
+                    <div className="text-xs text-gray-500">ID: {r.id}</div>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="font-medium text-gray-900">{r.customer}</div>
-                    <div className="text-xs text-gray-500 truncate max-w-[220px]">{r.address}</div>
+                    <div className="font-medium text-gray-900">{r.storeName}</div>
+                    <div className="text-xs text-gray-500 truncate max-w-[220px]">
+                      {r.addressLine || r.city || '—'}
+                    </div>
                   </td>
-                  <td className="px-3 py-2">{r.zone}</td>
-                  <td className="px-3 py-2"><StatusPill status={r.status} /></td>
+                  <td className="px-3 py-2">{r.city ?? '—'}</td>
                   <td className="px-3 py-2">
-                    {r.crew.length > 0 ? (
+                    <StatusPill status={r.status} />
+                  </td>
+                  <td className="px-3 py-2">
+                    {r.crewCount > 0 ? (
                       <span className="inline-flex items-center rounded border px-2 py-0.5 text-[11px] text-gray-700">
                         <Users className="mr-1 h-3.5 w-3.5" />
-                        {r.crew.join(', ')}
+                        {r.crewCount} assigned
                       </span>
                     ) : (
                       <span className="text-xs text-gray-400">—</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button onClick={() => goDetail(r.id)} className="text-primary-600 hover:text-primary-800">View</button>
+                    <button
+                      onClick={() => goDetail(r.id)}
+                      className="text-primary-600 hover:text-primary-800"
+                    >
+                      View
+                    </button>
                   </td>
                 </tr>
               ))
@@ -398,14 +557,18 @@ export default function InstallationsPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-top p-3 text-sm border-t">
           <div className="text-gray-600">
-            Showing <span className="font-medium text-gray-900">{paged.length}</span> of{' '}
+            Showing{' '}
+            <span className="font-medium text-gray-900">{paged.length}</span> of{' '}
             <span className="font-medium text-gray-900">{filtered.length}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className={cn('rounded-md border px-3 py-1.5', page === 1 ? 'opacity-50' : 'hover:bg-gray-50')}
+              className={cn(
+                'rounded-md border px-3 py-1.5',
+                page === 1 ? 'opacity-50' : 'hover:bg-gray-50'
+              )}
             >
               Prev
             </button>
@@ -415,7 +578,10 @@ export default function InstallationsPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className={cn('rounded-md border px-3 py-1.5', page === totalPages ? 'opacity-50' : 'hover:bg-gray-50')}
+              className={cn(
+                'rounded-md border px-3 py-1.5',
+                page === totalPages ? 'opacity-50' : 'hover:bg-gray-50'
+              )}
             >
               Next
             </button>
@@ -440,17 +606,49 @@ function statusRank(s: InstallationStatus) {
 }
 
 function StatusPill({ status }: { status: InstallationStatus }) {
-  const cfg: Record<InstallationStatus, { tone: string; Icon: any; label: string }> = {
-    pending:    { tone: 'border-gray-200 bg-gray-50 text-gray-700', Icon: Clock, label: 'Pending' },
-    staged:     { tone: 'border-blue-200 bg-blue-50 text-blue-700', Icon: Wrench, label: 'Staged' },
-    in_progress:{ tone: 'border-amber-200 bg-amber-50 text-amber-700', Icon: Clock, label: 'In progress' },
-    completed:  { tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', Icon: CheckCircle2, label: 'Completed' },
-    failed:     { tone: 'border-rose-200 bg-rose-50 text-rose-700', Icon: AlertTriangle, label: 'Failed' },
-    cancelled:  { tone: 'border-zinc-200 bg-zinc-50 text-zinc-700', Icon: XCircle, label: 'Cancelled' },
+  const cfg: Record<
+    InstallationStatus,
+    { tone: string; Icon: any; label: string }
+  > = {
+    pending: {
+      tone: 'border-gray-200 bg-gray-50 text-gray-700',
+      Icon: Clock,
+      label: 'Pending',
+    },
+    staged: {
+      tone: 'border-blue-200 bg-blue-50 text-blue-700',
+      Icon: Wrench,
+      label: 'Staged',
+    },
+    in_progress: {
+      tone: 'border-amber-200 bg-amber-50 text-amber-700',
+      Icon: Clock,
+      label: 'In progress',
+    },
+    completed: {
+      tone: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      Icon: CheckCircle2,
+      label: 'Completed',
+    },
+    failed: {
+      tone: 'border-rose-200 bg-rose-50 text-rose-700',
+      Icon: AlertTriangle,
+      label: 'Failed',
+    },
+    cancelled: {
+      tone: 'border-zinc-200 bg-zinc-50 text-zinc-700',
+      Icon: XCircle,
+      label: 'Cancelled',
+    },
   };
   const { tone, Icon, label } = cfg[status];
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]', tone)}>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]',
+        tone
+      )}
+    >
       <Icon className="h-3.5 w-3.5" />
       {label}
     </span>
@@ -474,10 +672,19 @@ function Th({
     <th className={cn('px-3 py-2 text-left font-semibold text-gray-700', className)}>
       <button
         onClick={onClick}
-        className={cn('inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-gray-100', active && 'text-primary-700')}
+        className={cn(
+          'inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-gray-100',
+          active && 'text-primary-700'
+        )}
         title="Sort"
       >
-        {label} <ArrowUpDown className={cn('h-3.5 w-3.5', active && dir === 'asc' && 'rotate-180')} />
+        {label}{' '}
+        <ArrowUpDown
+          className={cn(
+            'h-3.5 w-3.5',
+            active && dir === 'asc' && 'rotate-180'
+          )}
+        />
       </button>
     </th>
   );
@@ -518,7 +725,9 @@ function QuickChip({
     >
       {icon}
       <span className="font-medium">{label}</span>
-      <span className="rounded-full bg-white px-2 py-0.5 text-xs text-gray-700">{value}</span>
+      <span className="rounded-full bg-white px-2 py-0.5 text-xs text-gray-700">
+        {value}
+      </span>
     </button>
   );
 }
