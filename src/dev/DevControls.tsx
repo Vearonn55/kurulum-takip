@@ -1,7 +1,7 @@
 // src/dev/DevControls.tsx
 import { useEffect, useRef, useState } from 'react';
 import type { UserRole } from '@/types';
-import { setMockRole, clearMock, applyMockFromStorage } from './mockAuth';
+import { setMockRole, clearMock, } from './mockAuth';
 import { GripVertical, Settings2, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -45,8 +45,6 @@ function notifyRqPos(corner: DevtoolsCorner) {
 }
 
 export default function DevControls() {
-  useEffect(() => { applyMockFromStorage(); }, []);
-
   const [roleCorner, setRoleCorner] = useState<Corner>(() => loadCorner(ROLE_POS_KEY, 'bottom-right'));
   const [rqCorner, setRqCorner] = useState<DevtoolsCorner>(() => loadCorner(RQ_POS_KEY, 'bottom-right'));
   const [collapsed, setCollapsed] = useState<boolean>(() => loadCollapsed());

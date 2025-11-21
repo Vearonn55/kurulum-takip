@@ -69,10 +69,15 @@ const cornerToSide: Record<DevtoolsCorner, 'top' | 'bottom' | 'left' | 'right'> 
 function App() {
   const { isAuthenticated, user } = useAuthStore();
 
-  // Initialize auth once
-  useEffect(() => {
+// Initialize auth once
+useEffect(() => {
+  // In dev (localhost), do NOT auto-restore session from backend.
+  // This prevents automatic login and always shows the normal login page first.
+  if (!import.meta.env.DEV) {
     initializeAuth();
-  }, []);
+  }
+}, []);
+
 
   // React Query Devtools position (persisted by DevControls)
   const [rqPosition, setRqPosition] = useState<DevtoolsCorner>('bottom-right');
@@ -118,12 +123,10 @@ const getDefaultRoute = () => {
           <div className="min-h-screen bg-gray-50">
             <Routes>
               {/* Public routes */}
-              <Route
-                path="/auth/login"
-                element={isAuthenticated ? <Navigate to={getDefaultRoute()} replace /> : <LoginPage />}
-              />
+              <Route path="/auth/login" element={<LoginPage />} />
               <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
 
               {/* App routes (Admin/Manager/Warehouse) */}
               <Route
@@ -295,28 +298,26 @@ const getDefaultRoute = () => {
                 <Route path="settings" element={<CrewSettings />} />
               </Route>
 
-              {/* Errors & redirects */}
-              <Route path="/403" element={<ForbiddenPage />} />
-              <Route path="/404" element={<NotFoundPage />} />
-              <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
+            {/* Errors & redirects */}
+            <Route path="/403" element={<ForbiddenPage />} />
+            <Route path="/404" element={<NotFoundPage />} />
+            <Route path="/" element={<Navigate to="/auth/login" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>  {/* ← add this line */}
 
-            {/* Toast notifications */}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: { background: '#363636', color: '#fff' },
-                success: { duration: 3000, iconTheme: { primary: '#22c55e', secondary: '#fff' } },
-                error: { duration: 5000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-              }}
-            />
-          </div>
+          {/* Toast notifications */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: { background: '#363636', color: '#fff' },
+              success: { duration: 3000, iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+              error: { duration: 5000, iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+            }}
+          />
+        </div>
+      </Router>
 
-          {/* Dev-only controls */}
-          {import.meta.env.DEV && <DevControls />}
-        </Router>
 
         {/* React Query DevTools (movable) */}
         {import.meta.env.DEV && (

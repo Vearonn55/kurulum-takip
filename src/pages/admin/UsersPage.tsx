@@ -4,7 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Filter, Shield, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-import { apiClient } from '../../lib/api';
+import type { UUID } from '../../api/http';
+import type { User as ApiUser, UserStatus as ApiUserStatus } from '../../api/users';
+import type { Role as ApiRole } from '../../api/roles';
+import * as usersApi from '../../api/users';
+import * as rolesApi from '../../api/roles';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/auth-simple';
 
@@ -71,10 +75,11 @@ export default function UsersPage() {
   const rolesQuery = useQuery({
     queryKey: ['roles'],
     queryFn: async () => {
-      const res = await apiClient.getRoles();
-      const body = res.data as RoleListResponse | Role[];
-      if (Array.isArray(body)) return body;
-      return body.data;
+      const res = await rolesApi.listRoles();
+      const body = res as any;
+      if (Array.isArray(body)) return body as Role[];
+      if (Array.isArray(body.data)) return body.data as Role[];
+      return [] as Role[];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -82,10 +87,11 @@ export default function UsersPage() {
   const usersQuery = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const res = await apiClient.getUsers();
-      const body = res.data as UserListResponse | User[];
-      if (Array.isArray(body)) return body;
-      return body.data;
+      const res = await usersApi.listUsers();
+      const body = res as any;
+      if (Array.isArray(body)) return body as User[];
+      if (Array.isArray(body.data)) return body.data as User[];
+      return [] as User[];
     },
   });
 
@@ -126,7 +132,13 @@ export default function UsersPage() {
       password: string;
       role_id: ID;
     }) => {
-      return apiClient.createUser(payload);
+      return usersApi.createUser({
+        name: payload.name,
+        email: payload.email,
+        password: payload.password,
+        phone: payload.phone ?? null,
+        role_id: payload.role_id as UUID,
+      });
     },
     onSuccess: () => {
       toast.success('User created');
@@ -145,10 +157,10 @@ export default function UsersPage() {
       if (data.name !== undefined) updateBody.name = data.name;
       if (data.email !== undefined) updateBody.email = data.email;
       if (data.phone !== undefined) updateBody.phone = data.phone;
-      if (data.role_id !== undefined) updateBody.role_id = data.role_id;
+      if (data.role_id !== undefined) updateBody.role_id = data.role_id as UUID;
       if (data.status !== undefined) updateBody.status = data.status; // 'active' | 'disabled'
 
-      return apiClient.updateUser(id, updateBody);
+      return usersApi.updateUser(id as UUID, updateBody);
     },
     onSuccess: () => {
       toast.success('User updated');

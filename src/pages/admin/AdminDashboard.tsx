@@ -1,4 +1,4 @@
-// src/pages/admin/AdminDashboard.tsx
+// src/pages/admin/AdminDashboard.tsx 
 import { useMemo, useState } from 'react';
 import {
   Package,
@@ -362,37 +362,41 @@ export default function AdminDashboard() {
 
   const activities: Activity[] = useMemo(() => {
     const logs = auditLogsQuery.data?.data ?? [];
-    return logs.map((log) => {
-      const inst =
-        log.entity === 'installation'
-          ? installationById.get(log.entity_id)
-          : undefined;
-      const storeLabel = inst
-        ? storeNameById.get(inst.store_id) ?? null
-        : null;
 
-      const { icon, iconBgClass } = buildActivityIcon(log);
+    // ONLY show activities related to installations
+    return logs
+      .filter((log) => log.entity === 'installation')
+      .map((log) => {
+        const inst =
+          log.entity === 'installation'
+            ? installationById.get(log.entity_id)
+            : undefined;
+        const storeLabel = inst
+          ? storeNameById.get(inst.store_id) ?? null
+          : null;
 
-      const actorShort =
-        log.actor_id && log.actor_id.length > 8
-          ? log.actor_id.slice(0, 8)
-          : log.actor_id;
+        const { icon, iconBgClass } = buildActivityIcon(log);
 
-      const title = log.action.replace(/_/g, ' ');
-      const subtitleParts: string[] = [];
-      if (log.entity) subtitleParts.push(`${log.entity} #${log.entity_id}`);
-      if (storeLabel) subtitleParts.push(storeLabel);
+        const actorShort =
+          log.actor_id && log.actor_id.length > 8
+            ? log.actor_id.slice(0, 8)
+            : log.actor_id;
 
-      return {
-        id: log.id,
-        title,
-        subtitle: subtitleParts.join(' • '),
-        time: new Date(log.created_at).toLocaleString(),
-        storeLabel,
-        icon,
-        iconBgClass,
-      };
-    });
+        const title = log.action.replace(/_/g, ' ');
+        const subtitleParts: string[] = [];
+        if (log.entity) subtitleParts.push(`${log.entity} #${log.entity_id}`);
+        if (storeLabel) subtitleParts.push(storeLabel);
+
+        return {
+          id: log.id,
+          title,
+          subtitle: subtitleParts.join(' • '),
+          time: new Date(log.created_at).toLocaleString(),
+          storeLabel,
+          icon,
+          iconBgClass,
+        };
+      });
   }, [auditLogsQuery.data, installationById, storeNameById]);
 
   const filteredActivities = useMemo(
@@ -558,7 +562,8 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="card-content">
-          <div className="flow-root">
+          {/* Added max height + scrollbar here */}
+          <div className="flow-root max-h-80 overflow-y-auto pr-2">
             <ul className="-mb-8">
               {filteredActivities.map((activity, idx) => (
                 <li key={activity.id}>
