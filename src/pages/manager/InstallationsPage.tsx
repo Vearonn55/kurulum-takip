@@ -114,6 +114,14 @@ export default function InstallationsPage() {
   const navigate = useNavigate();
 
   // Filters
+    // Force-open date picker (Chrome / Edge / Safari)
+  const handleDateClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    const input = e.currentTarget as HTMLInputElement;
+    if (typeof (input as any).showPicker === 'function') {
+      (input as any).showPicker();
+    }
+  };
+
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<InstallationStatus | 'all'>('all');
   const [zone, setZone] = useState<Zone | 'all'>('all');
@@ -348,6 +356,7 @@ export default function InstallationsPage() {
                 type="date"
                 className="input w-full pl-8"
                 value={from}
+                onClick={handleDateClick} 
                 onChange={(e) => {
                   setFrom(e.target.value);
                   setPage(1);
@@ -363,6 +372,7 @@ export default function InstallationsPage() {
                 type="date"
                 className="input w-full pl-8"
                 value={to}
+                onClick={handleDateClick} 
                 onChange={(e) => {
                   setTo(e.target.value);
                   setPage(1);

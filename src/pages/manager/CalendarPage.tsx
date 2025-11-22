@@ -132,7 +132,7 @@ export default function CalendarPage() {
   const { user } = useAuthStore();
 
   const [mode, setMode] = useState<ViewMode>('month');
-  const [cursor, setCursor] = useState<Date>(() => startOfMonth(new Date()));
+  const [cursor, setCursor] = useState<Date>(() => new Date());
 
   // Visible ranges
   const monthStart = startOfMonth(cursor);
@@ -249,7 +249,7 @@ export default function CalendarPage() {
     setCursor((c) => (mode === 'month' ? addMonths(c, -1) : addWeeks(c, -1)));
   const nextAction = () =>
     setCursor((c) => (mode === 'month' ? addMonths(c, +1) : addWeeks(c, +1)));
-  const todayAction = () => setCursor(startOfMonth(new Date()));
+  const todayAction = () => setCursor(new Date());
 
   return (
     <div className="space-y-6">
