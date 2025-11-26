@@ -1,8 +1,10 @@
 // src/pages/admin/UsersPage.tsx
 import { useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw, Search, Filter, Shield, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 import type { UUID } from '../../api/http';
 import type { User as ApiUser, UserStatus as ApiUserStatus } from '../../api/users';
@@ -59,6 +61,7 @@ type RoleListResponse = {
 export default function UsersPage() {
   const qc = useQueryClient();
   const { user: me } = useAuthStore();
+  const { t } = useTranslation();
 
   // Filters
   const [roleIdFilter, setRoleIdFilter] = useState<string>('');
@@ -141,12 +144,16 @@ export default function UsersPage() {
       });
     },
     onSuccess: () => {
-      toast.success('User created');
+      toast.success(t('usersPage.toasts.userCreated'));
       setShowCreate(false);
       qc.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to create user'),
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          t('usersPage.toasts.createFailed')
+      ),
   });
 
   const updateMutation = useMutation({
@@ -163,12 +170,16 @@ export default function UsersPage() {
       return usersApi.updateUser(id as UUID, updateBody);
     },
     onSuccess: () => {
-      toast.success('User updated');
+      toast.success(t('usersPage.toasts.userUpdated'));
       setEditUser(null);
       qc.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (err: any) =>
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to update user'),
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          t('usersPage.toasts.updateFailed')
+      ),
   });
 
   const toggleStatus = (u: User) => {
@@ -181,7 +192,7 @@ export default function UsersPage() {
 
   /** ----- Handlers ----- */
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreate = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get('name') || '').trim();
@@ -191,7 +202,7 @@ export default function UsersPage() {
     const role_id = String(fd.get('role_id') || '');
 
     if (!name || !email || !password || !role_id) {
-      toast.error('Name, email, password and role are required');
+      toast.error(t('usersPage.validation.missingRequired'));
       return;
     }
 
@@ -204,7 +215,7 @@ export default function UsersPage() {
     });
   };
 
-  const handleEdit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEdit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editUser) return;
     const fd = new FormData(e.currentTarget);
@@ -243,8 +254,12 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage access and roles</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t('usersPage.title')}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t('usersPage.subtitle')}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -255,14 +270,14 @@ export default function UsersPage() {
             <RefreshCw
               className={cn('h-4 w-4', usersQuery.isFetching && 'animate-spin')}
             />
-            Refresh
+            {t('usersPage.refresh')}
           </button>
           <button
             onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm text-white hover:bg-primary-700"
           >
             <Plus className="h-4 w-4" />
-            New User
+            {t('usersPage.newUserButton')}
           </button>
         </div>
       </div>
@@ -274,7 +289,7 @@ export default function UsersPage() {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               className="input w-full pl-8"
-              placeholder="Search by name, email, phone, id…"
+              placeholder={t('usersPage.searchPlaceholder')}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -287,7 +302,7 @@ export default function UsersPage() {
               value={roleIdFilter}
               onChange={(e) => setRoleIdFilter(e.target.value)}
             >
-              <option value="">All roles</option>
+              <option value="">{t('usersPage.filters.allRoles')}</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -301,9 +316,13 @@ export default function UsersPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="disabled">Disabled</option>
+            <option value="">{t('usersPage.filters.allStatuses')}</option>
+            <option value="active">
+              {t('usersPage.status.active')}
+            </option>
+            <option value="disabled">
+              {t('usersPage.status.disabled')}
+            </option>
           </select>
         </div>
       </div>
@@ -314,19 +333,19 @@ export default function UsersPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                Name
+                {t('usersPage.table.name')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                Email
+                {t('usersPage.table.email')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                Role
+                {t('usersPage.table.role')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                Status
+                {t('usersPage.table.status')}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">
-                Actions
+                {t('usersPage.table.actions')}
               </th>
             </tr>
           </thead>
@@ -352,7 +371,7 @@ export default function UsersPage() {
                         : 'bg-gray-100 text-gray-800'
                     )}
                   >
-                    {u.status}
+                    {t(`usersPage.status.${u.status}`)}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-right">
@@ -361,7 +380,7 @@ export default function UsersPage() {
                       className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
                       onClick={() => setEditUser(u)}
                     >
-                      Edit
+                      {t('usersPage.actions.edit')}
                     </button>
                     {u.id !== me?.id && (
                       <button
@@ -374,7 +393,9 @@ export default function UsersPage() {
                         onClick={() => toggleStatus(u)}
                         disabled={updateMutation.isPending}
                       >
-                        {u.status === 'active' ? 'Disable' : 'Activate'}
+                        {u.status === 'active'
+                          ? t('usersPage.actions.disable')
+                          : t('usersPage.actions.activate')}
                       </button>
                     )}
                   </div>
@@ -388,7 +409,7 @@ export default function UsersPage() {
                   colSpan={5}
                   className="px-4 py-6 text-center text-sm text-gray-500"
                 >
-                  No users found.
+                  {t('usersPage.noUsers')}
                 </td>
               </tr>
             )}
@@ -396,11 +417,13 @@ export default function UsersPage() {
         </table>
 
         {usersQuery.isLoading && (
-          <div className="px-4 py-6 text-sm text-gray-500">Loading users…</div>
+          <div className="px-4 py-6 text-sm text-gray-500">
+            {t('usersPage.loading')}
+          </div>
         )}
         {usersQuery.isError && (
           <div className="px-4 py-6 text-sm text-red-600">
-            Failed to load users.
+            {t('usersPage.loadError')}
           </div>
         )}
       </div>
@@ -415,32 +438,34 @@ export default function UsersPage() {
           <div className="relative z-50 w-full rounded-lg bg-white shadow-lg sm:max-w-lg">
             <form onSubmit={handleCreate}>
               <div className="border-b p-4">
-                <div className="text-lg font-semibold">New User</div>
+                <div className="text-lg font-semibold">
+                  {t('usersPage.create.title')}
+                </div>
                 <div className="text-sm text-gray-500">
-                  Create a new account
+                  {t('usersPage.create.subtitle')}
                 </div>
               </div>
               <div className="space-y-3 p-4">
                 <input
                   name="name"
                   className="input w-full"
-                  placeholder="Full name"
+                  placeholder={t('usersPage.form.fullName')}
                 />
                 <input
                   name="email"
                   className="input w-full"
-                  placeholder="Email"
+                  placeholder={t('usersPage.form.email')}
                   type="email"
                 />
                 <input
                   name="phone"
                   className="input w-full"
-                  placeholder="Phone (optional)"
+                  placeholder={t('usersPage.form.phoneOptional')}
                 />
                 <input
                   name="password"
                   className="input w-full"
-                  placeholder="Initial password"
+                  placeholder={t('usersPage.form.initialPassword')}
                   type="password"
                 />
                 <select
@@ -448,7 +473,9 @@ export default function UsersPage() {
                   className="input w-full"
                   defaultValue=""
                 >
-                  <option value="">Select role…</option>
+                  <option value="">
+                    {t('usersPage.form.selectRolePlaceholder')}
+                  </option>
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
@@ -462,14 +489,14 @@ export default function UsersPage() {
                   className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
                   onClick={() => setShowCreate(false)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary inline-flex items-center gap-2"
                   disabled={createMutation.isPending}
                 >
-                  <Plus className="h-4 w-4" /> Create
+                  <Plus className="h-4 w-4" /> {t('usersPage.actions.create')}
                 </button>
               </div>
             </form>
@@ -487,9 +514,11 @@ export default function UsersPage() {
           <div className="relative z-50 w-full rounded-lg bg-white shadow-lg sm:max-w-lg">
             <form onSubmit={handleEdit}>
               <div className="border-b p-4">
-                <div className="text-lg font-semibold">Edit User</div>
+                <div className="text-lg font-semibold">
+                  {t('usersPage.edit.title')}
+                </div>
                 <div className="text-sm text-gray-500">
-                  Update account settings
+                  {t('usersPage.edit.subtitle')}
                 </div>
               </div>
               <div className="space-y-3 p-4">
@@ -526,8 +555,12 @@ export default function UsersPage() {
                     className="input w-full"
                     defaultValue={editUser.status}
                   >
-                    <option value="active">active</option>
-                    <option value="disabled">disabled</option>
+                    <option value="active">
+                      {t('usersPage.status.active')}
+                    </option>
+                    <option value="disabled">
+                      {t('usersPage.status.disabled')}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -538,7 +571,7 @@ export default function UsersPage() {
                   onClick={() => setEditUser(null)}
                 >
                   <X className="h-4 w-4" />
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -546,7 +579,7 @@ export default function UsersPage() {
                   disabled={updateMutation.isPending}
                 >
                   <Check className="h-4 w-4" />
-                  Save changes
+                  {t('usersPage.actions.saveChanges')}
                 </button>
               </div>
             </form>

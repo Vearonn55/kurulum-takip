@@ -80,6 +80,199 @@ adminDashboard: {
   quickViewReportsTitle: 'View Reports',
   quickViewReportsSubtitle: 'Analytics and insights',
 },
+
+  usersPage: {
+    title: 'Users',
+    subtitle: 'Manage access and roles',
+
+    refresh: 'Refresh',
+    newUserButton: 'New User',
+
+    searchPlaceholder: 'Search by name, email, phone, id…',
+
+    filters: {
+      allRoles: 'All roles',
+      allStatuses: 'All statuses',
+    },
+
+    status: {
+      active: 'Active',
+      disabled: 'Disabled',
+    },
+
+    table: {
+      name: 'Name',
+      email: 'Email',
+      role: 'Role',
+      status: 'Status',
+      actions: 'Actions',
+    },
+
+    actions: {
+      edit: 'Edit',
+      disable: 'Disable',
+      activate: 'Activate',
+      create: 'Create',
+      saveChanges: 'Save changes',
+    },
+
+    noUsers: 'No users found.',
+    loading: 'Loading users…',
+    loadError: 'Failed to load users.',
+
+    toasts: {
+      userCreated: 'User created',
+      createFailed: 'Failed to create user',
+      userUpdated: 'User updated',
+      updateFailed: 'Failed to update user',
+    },
+
+    validation: {
+      missingRequired:
+        'Name, email, password and role are required',
+    },
+
+    create: {
+      title: 'New User',
+      subtitle: 'Create a new account',
+    },
+
+    edit: {
+      title: 'Edit User',
+      subtitle: 'Update account settings',
+    },
+
+    form: {
+      fullName: 'Full name',
+      email: 'Email',
+      phoneOptional: 'Phone (optional)',
+      initialPassword: 'Initial password',
+      selectRolePlaceholder: 'Select role…',
+    },
+  },
+  
+   audit: {
+    title: 'Audit Logs',
+    subtitle: 'Real logs from backend.',
+
+    filters: {
+      searchPlaceholder: 'Search id, action, entity, ip...',
+      actorPlaceholder: 'Actor ID',
+      entityPlaceholder: 'Entity (User, Order, Installation...)',
+      dateTo: 'to',
+    },
+
+    table: {
+      timestamp: 'Timestamp',
+      actor: 'Actor',
+      action: 'Action',
+      entity: 'Entity',
+      entityId: 'Entity ID',
+      ip: 'IP',
+      payload: 'Payload',
+      noLogs: 'No audit logs found.',
+    },
+
+    buttons: {
+      refresh: 'Refresh',
+      viewJson: 'View JSON',
+      copyJson: 'Copy JSON',
+      close: 'Close',
+    },
+
+    pagination: {
+      page: 'Page',
+      of: ' / ',
+    },
+
+    drawer: {
+      payload: 'Payload',
+      actor: 'Actor',
+      ip: 'IP',
+    },
+  },
+
+  reportsPage: {
+  title: 'Reports',
+  filtersTitle: 'Filters',
+  startLabel: 'Start',
+  endLabel: 'End',
+  cityLabel: 'City',
+  storeLabel: 'Store',
+  allStores: 'All Stores',
+
+  installationsTitle: 'Installations',
+  totalSuccessfulLabel: 'Total Successful Installations',
+  successRateLabel: 'Success rate',
+
+  difficultyTitle: 'Installation Difficulty Total',
+  easyLabel: 'Easy',
+  intermediateLabel: 'Intermediate',
+  hardLabel: 'Hard',
+
+  serviceAfterTitle: 'Service After Installation',
+  serviceAfterDescription: 'Total Installations / With Service After Installation',
+
+  showing: 'Showing',
+  item: 'item',
+  items: 'items',
+  for: 'for',
+  selectedStoreSuffix: '• selected store',
+  between: 'between',
+  and: 'and',
+
+  noInstallations: 'No installations match the selected filters.',
+
+  viewInstallation: 'View Installation',
+  viewInstallationTooltip: 'Go to Installation Detail',
+
+  debugCurrentParams: 'Current params →',
+},
+
+calendarPage: {
+  prev: 'Previous',
+  next: 'Next',
+  weekView: 'Week View',
+  storeLabelShort: 'Store',
+
+  monthly: 'Monthly',
+  month: 'Month',
+  weekly: 'Weekly',
+  week: 'Week',
+
+  refresh: 'Refresh',
+  jumpToThisMonth: 'Jump to this month',
+  today: 'Today',
+  createInstallation: 'Create Installation',
+
+  legend: {
+    completed: 'Completed',
+    acceptedPendingScheduled: 'Accepted / Pending / Scheduled',
+    failedCanceled: 'Failed / Canceled',
+    inProgress: 'In Progress',
+  },
+
+  weekdays: {
+    mon: 'Mon',
+    tue: 'Tue',
+    wed: 'Wed',
+    thu: 'Thu',
+    fri: 'Fri',
+    sat: 'Sat',
+    sun: 'Sun',
+  },
+
+  more: 'more…',
+
+  loadingInstallations: 'Loading installations…',
+  failedToLoadInstallations: 'Failed to load installations.',
+  noInstallationsThisMonth: 'No installations in this month.',
+  noInstallationsThisWeek: 'No installations in this week.',
+
+  timeColumn: 'Time',
+},
+
+
 };
 
 export default enCommon;

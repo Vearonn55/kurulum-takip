@@ -8,6 +8,7 @@ import {
   type Installation,
 } from '../../api/installations';
 import { listStores, type Store as ApiStore } from '../../api/stores';
+import { useTranslation } from 'react-i18next';
 
 /* ---------- Local filter types ---------- */
 
@@ -68,6 +69,7 @@ function hasServiceAfter(inst: Installation): boolean {
 
 export default function ReportsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   // default: last 7 days
   const todayStr = useMemo(
@@ -236,10 +238,18 @@ export default function ReportsPage() {
 
   return (
     <div className="p-4 md:p-6">
+        {/* Page header */}
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('reportsPage.title')}
+        </h1>
+      </div>
       {/* Top controls: Start, End, City, Store */}
       <div className="rounded-lg border bg-white">
         <div className="border-b px-4 py-3">
-          <h2 className="text-base font-semibold">Filters</h2>
+          <h2 className="text-base font-semibold">
+            {t('reportsPage.filtersTitle')}
+          </h2>
         </div>
         <div className="px-4 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -249,7 +259,7 @@ export default function ReportsPage() {
                 htmlFor="start-date"
                 className="text-sm font-medium"
               >
-                Start
+                {t('reportsPage.startLabel')}
               </label>
               <input
                 id="start-date"
@@ -267,7 +277,7 @@ export default function ReportsPage() {
                 htmlFor="end-date"
                 className="text-sm font-medium"
               >
-                End
+                {t('reportsPage.endLabel')}
               </label>
               <input
                 id="end-date"
@@ -285,7 +295,7 @@ export default function ReportsPage() {
                 htmlFor="city"
                 className="text-sm font-medium"
               >
-                City
+                {t('reportsPage.cityLabel')}
               </label>
               <select
                 id="city"
@@ -309,7 +319,7 @@ export default function ReportsPage() {
                 htmlFor="store"
                 className="text-sm font-medium"
               >
-                Store
+                {t('reportsPage.storeLabel')}
               </label>
               <select
                 id="store"
@@ -319,7 +329,9 @@ export default function ReportsPage() {
                 }
                 className="rounded-md border px-2 py-1 text-sm"
               >
-                <option value="All Stores">All Stores</option>
+                <option value="All Stores">
+                  {t('reportsPage.allStores')}
+                </option>
                 {allStoresForFilter.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -336,7 +348,7 @@ export default function ReportsPage() {
         {/* Card 1 - Installation Success Rate (REAL) */}
         <div className="rounded-lg border bg-white p-4">
           <h3 className="mb-2 text-sm font-medium text-gray-700">
-            Installations
+            {t('reportsPage.installationsTitle')}
           </h3>
 
           {/* Successful installations number + label */}
@@ -345,7 +357,7 @@ export default function ReportsPage() {
               {successfulInstallations}
             </div>
             <span className="mt-1 text-sm text-gray-500">
-              Total Successful Installations
+              {t('reportsPage.totalSuccessfulLabel')}
             </span>
           </div>
 
@@ -365,7 +377,7 @@ export default function ReportsPage() {
               {successRate}%
             </div>
             <span className="mb-1 text-sm text-gray-500">
-              Success rate
+              {t('reportsPage.successRateLabel')}
             </span>
           </div>
         </div>
@@ -373,14 +385,14 @@ export default function ReportsPage() {
         {/* Card 2 - Installation Difficulty Total (from notes meta) */}
         <div className="rounded-lg border bg-white p-4 sm:col-span-1">
           <h3 className="text-sm font-medium text-gray-700">
-            Installation Difficulty Total
+            {t('reportsPage.difficultyTitle')}
           </h3>
 
           {/* Counts */}
           <div className="mt-3 grid grid-cols-3 gap-2">
             <div className="rounded-md border p-2 text-center">
               <div className="text-xs font-medium text-gray-600">
-                Easy
+                {t('reportsPage.easyLabel')}
               </div>
               <div className="mt-1 text-2xl font-semibold text-green-600">
                 {easyCount}
@@ -388,7 +400,7 @@ export default function ReportsPage() {
             </div>
             <div className="rounded-md border p-2 text-center">
               <div className="text-xs font-medium text-gray-600">
-                Intermediate
+                {t('reportsPage.intermediateLabel')}
               </div>
               <div className="mt-1 text-2xl font-semibold text-yellow-500">
                 {intermediateCount}
@@ -396,7 +408,7 @@ export default function ReportsPage() {
             </div>
             <div className="rounded-md border p-2 text-center">
               <div className="text-xs font-medium text-gray-600">
-                Hard
+                {t('reportsPage.hardLabel')}
               </div>
               <div className="mt-1 text-2xl font-semibold text-red-600">
                 {hardCount}
@@ -435,7 +447,7 @@ export default function ReportsPage() {
         {/* Card 3 - Service After Installation (from notes meta) */}
         <div className="rounded-lg border bg-white p-4">
           <h3 className="text-sm font-medium text-gray-700">
-            Service After Installation
+            {t('reportsPage.serviceAfterTitle')}
           </h3>
 
           <div className="mt-2 text-3xl font-semibold text-gray-900">
@@ -443,7 +455,7 @@ export default function ReportsPage() {
           </div>
 
           <p className="mt-1 text-xs text-gray-500">
-            Total Installations / With Service After Installation
+            {t('reportsPage.serviceAfterDescription')}
           </p>
         </div>
       </div>
@@ -451,15 +463,32 @@ export default function ReportsPage() {
       {/* Big Installations Card */}
       <div className="mt-6 rounded-lg border bg-white">
         <div className="border-b px-4 py-3">
-          <h2 className="text-base font-semibold">Installations</h2>
+          <h2 className="text-base font-semibold">
+            {t('reportsPage.installationsTitle')}
+          </h2>
           <p className="text-xs text-gray-500">
-            Showing {filtered.length} item
-            {filtered.length !== 1 ? 's' : ''} for{' '}
+            {t('reportsPage.showing')}
+            {' '}
+            {filtered.length}
+            {' '}
+            {filtered.length !== 1
+              ? t('reportsPage.items')
+              : t('reportsPage.item')}
+            {' '}
+            {t('reportsPage.for')}
+            {' '}
             {city}
             {storeFilter !== 'All Stores'
-              ? ' • selected store'
-              : ''}{' '}
-            between {startDate} and {endDate}
+              ? ` ${t('reportsPage.selectedStoreSuffix')}`
+              : ''}
+            {' '}
+            {t('reportsPage.between')}
+            {' '}
+            {startDate}
+            {' '}
+            {t('reportsPage.and')}
+            {' '}
+            {endDate}
           </p>
         </div>
 
@@ -467,7 +496,7 @@ export default function ReportsPage() {
         <div className="divide-y">
           {filtered.length === 0 ? (
             <div className="px-4 py-8 text-sm text-gray-500">
-              No installations match the selected filters.
+              {t('reportsPage.noInstallations')}
             </div>
           ) : (
             filtered.map((inst) => {
@@ -494,10 +523,10 @@ export default function ReportsPage() {
                         navigate(`/app/installations/${inst.id}`)
                       }
                       className="rounded-md border px-3 py-1 text-xs font-medium hover:bg-gray-50"
-                      title="Go to Installation Detail"
+                      title={t('reportsPage.viewInstallationTooltip')}
                       type="button"
                     >
-                      View Installation
+                      {t('reportsPage.viewInstallation')}
                     </button>
                   </div>
                 </div>
@@ -509,9 +538,13 @@ export default function ReportsPage() {
 
       {/* Debug params (optional) */}
       <div className="mt-4 rounded-md border px-3 py-2 text-xs text-gray-500">
-        Current params → start: <b>{startDate}</b>, end:{' '}
-        <b>{endDate}</b>, city: <b>{city}</b>, store:{' '}
-        <b>{storeFilter}</b>
+        {t('reportsPage.debugCurrentParams')}
+        {' '}
+        {t('reportsPage.startLabel')}
+        : <b>{startDate}</b>, {t('reportsPage.endLabel')}
+        : <b>{endDate}</b>, {t('reportsPage.cityLabel')}
+        : <b>{city}</b>, {t('reportsPage.storeLabel')}
+        : <b>{storeFilter}</b>
       </div>
     </div>
   );

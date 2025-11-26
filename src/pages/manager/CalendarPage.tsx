@@ -18,6 +18,7 @@ import type { Installation } from '../../types';
 import { cn } from '../../lib/utils';
 import { useAuthStore } from '../../stores/auth-simple';
 import { listInstallations } from '../../api/installations';
+import { useTranslation } from 'react-i18next';
 
 /* =============== Date helpers =============== */
 const MONDAY = 1;
@@ -130,6 +131,7 @@ type ViewMode = 'month' | 'week';
 
 export default function CalendarPage() {
   const { user } = useAuthStore();
+  const { t, i18n } = useTranslation('common');
 
   const [mode, setMode] = useState<ViewMode>('month');
   const [cursor, setCursor] = useState<Date>(() => new Date());
@@ -192,20 +194,21 @@ export default function CalendarPage() {
     const toMs = to.getTime();
     return installations.filter((inst) => {
       if (!inst.scheduled_start) return false;
-      const t = new Date(inst.scheduled_start).getTime();
-      return t >= fromMs && t <= toMs;
+      const tMs = new Date(inst.scheduled_start).getTime();
+      return tMs >= fromMs && tMs <= toMs;
     });
   }, [installations, from, to]);
 
   /* ---- Monthly prep ---- */
   const monthDays = useMemo(() => eachDayGrid(cursor), [cursor]);
+
   const monthLabel = useMemo(
     () =>
-      monthStart.toLocaleDateString(undefined, {
+      monthStart.toLocaleDateString(i18n.language, {
         month: 'long',
         year: 'numeric',
       }),
-    [monthStart]
+    [monthStart, i18n.language]
   );
 
   const byDayMonth = useMemo(() => {
@@ -259,21 +262,21 @@ export default function CalendarPage() {
           <button
             className="rounded-md border p-2 hover:bg-gray-50"
             onClick={prevAction}
-            aria-label="Prev"
+            aria-label={t('calendarPage.prev')}
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             className="rounded-md border p-2 hover:bg-gray-50"
             onClick={nextAction}
-            aria-label="Next"
+            aria-label={t('calendarPage.next')}
           >
             <ChevronRight className="h-5 w-5" />
           </button>
           <div className="ml-1">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <CalendarIcon className="h-6 w-6 text-gray-700" />
-              {mode === 'month' ? monthLabel : 'Week View'}
+              {mode === 'month' ? monthLabel : t('calendarPage.weekView')}
             </h1>
             <p className="mt-1 text-sm text-gray-500 flex items-center gap-2">
               {mode === 'month'
@@ -281,7 +284,8 @@ export default function CalendarPage() {
                 : weekLabel}
               {storeFilter && (
                 <span className="inline-flex items-center gap-1 text-gray-600">
-                  <MapPin className="h-4 w-4" /> Store: {storeFilter}
+                  <MapPin className="h-4 w-4" />{' '}
+                  {t('calendarPage.storeLabelShort')}: {storeFilter}
                 </span>
               )}
             </p>
@@ -298,9 +302,9 @@ export default function CalendarPage() {
                   : 'text-gray-600'
               )}
               onClick={() => setMode('month')}
-              title="Monthly"
+              title={t('calendarPage.monthly')}
             >
-              <LayoutGrid className="h-4 w-4" /> Month
+              <LayoutGrid className="h-4 w-4" /> {t('calendarPage.month')}
             </button>
             <button
               className={cn(
@@ -310,9 +314,9 @@ export default function CalendarPage() {
                   : 'text-gray-600'
               )}
               onClick={() => setMode('week')}
-              title="Weekly"
+              title={t('calendarPage.weekly')}
             >
-              <Rows3 className="h-4 w-4" /> Week
+              <Rows3 className="h-4 w-4" /> {t('calendarPage.week')}
             </button>
           </div>
 
@@ -327,22 +331,22 @@ export default function CalendarPage() {
                 query.isFetching && 'animate-spin'
               )}
             />
-            Refresh
+            {t('calendarPage.refresh')}
           </button>
           <button
             onClick={todayAction}
             className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
-            title="Jump to this month"
+            title={t('calendarPage.jumpToThisMonth')}
           >
             <Clock className="h-4 w-4" />
-            Today
+            {t('calendarPage.today')}
           </button>
           <Link
             to="/app/installations/new"
             className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm text-white hover:bg-primary-700"
           >
             <Plus className="h-4 w-4" />
-            Create Installation
+            {t('calendarPage.createInstallation')}
           </Link>
         </div>
       </div>
@@ -351,19 +355,19 @@ export default function CalendarPage() {
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border bg-emerald-100 border-emerald-200" />
-          Completed
+          {t('calendarPage.legend.completed')}
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border bg-amber-100 border-amber-200" />
-          Accepted / Pending / Scheduled
+          {t('calendarPage.legend.acceptedPendingScheduled')}
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border bg-red-100 border-red-200" />
-          Failed / Canceled
+          {t('calendarPage.legend.failedCanceled')}
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border bg-blue-100 border-blue-200" />
-          In Progress
+          {t('calendarPage.legend.inProgress')}
         </span>
       </div>
 
@@ -371,9 +375,9 @@ export default function CalendarPage() {
       {mode === 'month' ? (
         <div className="overflow-hidden rounded-lg border bg-white">
           <div className="grid grid-cols-7 border-b bg-gray-50 text-xs font-medium text-gray-500 uppercase">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-              <div key={d} className="px-3 py-2">
-                {d}
+            {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dKey) => (
+              <div key={dKey} className="px-3 py-2">
+                {t(`calendarPage.weekdays.${dKey}`)}
               </div>
             ))}
           </div>
@@ -424,7 +428,7 @@ export default function CalendarPage() {
                     ))}
                     {events.length > 3 && (
                       <div className="text-[11px] text-gray-500">
-                        +{events.length - 3} more…
+                        +{events.length - 3} {t('calendarPage.more')}
                       </div>
                     )}
                   </div>
@@ -435,17 +439,17 @@ export default function CalendarPage() {
 
           {query.isLoading && (
             <div className="px-4 py-6 text-sm text-gray-500">
-              Loading installations…
+              {t('calendarPage.loadingInstallations')}
             </div>
           )}
           {query.isError && (
             <div className="px-4 py-6 text-sm text-red-600">
-              Failed to load installations.
+              {t('calendarPage.failedToLoadInstallations')}
             </div>
           )}
           {!query.isLoading && filteredByRange.length === 0 && (
             <div className="px-4 py-6 text-sm text-gray-500">
-              No installations in this month.
+              {t('calendarPage.noInstallationsThisMonth')}
             </div>
           )}
         </div>
@@ -455,7 +459,7 @@ export default function CalendarPage() {
           {/* Week header */}
           <div className="grid grid-cols-[80px_repeat(7,minmax(0,1fr))] border-b bg-gray-50">
             <div className="px-2 py-2 text-xs font-medium uppercase text-gray-500">
-              Time
+              {t('calendarPage.timeColumn')}
             </div>
             {weekDays.map((d) => {
               const isToday = fmtYYYYMMDD(d) === todayStr;
@@ -470,7 +474,9 @@ export default function CalendarPage() {
                       isToday && 'bg-primary-100 text-primary-800'
                     )}
                   >
-                    {d.toLocaleDateString(undefined, { weekday: 'short' })}{' '}
+                    {d.toLocaleDateString(i18n.language, {
+                      weekday: 'short',
+                    })}{' '}
                     <span className="text-gray-500">{d.getDate()}</span>
                   </div>
                 </div>
@@ -580,17 +586,17 @@ export default function CalendarPage() {
 
           {query.isLoading && (
             <div className="px-4 py-6 text-sm text-gray-500">
-              Loading installations…
+              {t('calendarPage.loadingInstallations')}
             </div>
           )}
           {query.isError && (
             <div className="px-4 py-6 text-sm text-red-600">
-              Failed to load installations.
+              {t('calendarPage.failedToLoadInstallations')}
             </div>
           )}
           {!query.isLoading && filteredByRange.length === 0 && (
             <div className="px-4 py-6 text-sm text-gray-500">
-              No installations in this week.
+              {t('calendarPage.noInstallationsThisWeek')}
             </div>
           )}
         </div>

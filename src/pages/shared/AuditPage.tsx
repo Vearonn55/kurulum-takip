@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { listAuditLogs, type AuditLog } from '../../api/auditLogs';
 
@@ -23,6 +24,8 @@ type SortKey = 'created_at' | 'actor_id' | 'entity' | 'action' | 'ip';
 type SortDir = 'asc' | 'desc';
 
 export default function AuditPage() {
+  const { t } = useTranslation('common');
+
   /* ------------------ Filters ------------------ */
   const [search, setSearch] = useState('');
   const [actor, setActor] = useState('');
@@ -68,7 +71,10 @@ export default function AuditPage() {
     list.sort((a, b) => {
       switch (sortKey) {
         case 'created_at':
-          return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
+          return (
+            (new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()) * dir
+          );
         case 'actor_id':
           return ((a.actor_id || '').localeCompare(b.actor_id || '')) * dir;
         case 'entity':
@@ -101,7 +107,7 @@ export default function AuditPage() {
   const copyJSON = (obj: Record<string, unknown> | null | undefined) => {
     try {
       navigator.clipboard.writeText(JSON.stringify(obj ?? {}, null, 2));
-      toast.success('Copied payload');
+      toast.success(t('audit.buttons.copyJson'));
     } catch {
       toast.error('Failed to copy');
     }
@@ -112,10 +118,9 @@ export default function AuditPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Audit Logs</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Real logs from backend.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t('audit.title')}
+          </h1>
         </div>
 
         <button
@@ -127,7 +132,7 @@ export default function AuditPage() {
           ) : (
             <RefreshCw className="h-4 w-4" />
           )}
-          Refresh
+          {t('audit.buttons.refresh')}
         </button>
       </div>
 
@@ -139,7 +144,7 @@ export default function AuditPage() {
             <Search className="h-4 w-4 absolute left-2 top-2.5 text-gray-400" />
             <input
               className="input w-full pl-8"
-              placeholder="Search id, action, entity, ip..."
+              placeholder={t('audit.filters.searchPlaceholder')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -153,7 +158,7 @@ export default function AuditPage() {
             <User className="h-4 w-4 text-gray-400" />
             <input
               className="input w-full"
-              placeholder="Actor ID"
+              placeholder={t('audit.filters.actorPlaceholder')}
               value={actor}
               onChange={(e) => {
                 setActor(e.target.value);
@@ -167,7 +172,7 @@ export default function AuditPage() {
             <Shield className="h-4 w-4 text-gray-400" />
             <input
               className="input w-full"
-              placeholder="Entity (User, Order, Installation...)"
+              placeholder={t('audit.filters.entityPlaceholder')}
               value={entity}
               onChange={(e) => {
                 setEntity(e.target.value);
@@ -188,7 +193,9 @@ export default function AuditPage() {
                 setPage(1);
               }}
             />
-            <span className="text-xs text-gray-500">to</span>
+            <span className="text-xs text-gray-500">
+              {t('audit.filters.dateTo')}
+            </span>
             <input
               type="date"
               className="input w-full"
@@ -208,38 +215,38 @@ export default function AuditPage() {
           <thead className="bg-gray-50">
             <tr>
               <Th
-                label="Timestamp"
+                label={t('audit.table.timestamp')}
                 active={sortKey === 'created_at'}
                 dir={sortDir}
                 onClick={() => toggleSort('created_at')}
               />
               <Th
-                label="Actor"
+                label={t('audit.table.actor')}
                 active={sortKey === 'actor_id'}
                 dir={sortDir}
                 onClick={() => toggleSort('actor_id')}
               />
               <Th
-                label="Action"
+                label={t('audit.table.action')}
                 active={sortKey === 'action'}
                 dir={sortDir}
                 onClick={() => toggleSort('action')}
               />
               <Th
-                label="Entity"
+                label={t('audit.table.entity')}
                 active={sortKey === 'entity'}
                 dir={sortDir}
                 onClick={() => toggleSort('entity')}
               />
-              <Th label="Entity ID" />
+              <Th label={t('audit.table.entityId')} />
               <Th
-                label="IP"
+                label={t('audit.table.ip')}
                 active={sortKey === 'ip'}
                 dir={sortDir}
                 onClick={() => toggleSort('ip')}
               />
               <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">
-                Payload
+                {t('audit.table.payload')}
               </th>
             </tr>
           </thead>
@@ -253,19 +260,25 @@ export default function AuditPage() {
                 <td className="px-4 py-3 text-sm text-gray-700">
                   {row.actor_id || '—'}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-900">{row.action}</td>
+                <td className="px-4 py-3 text-sm text-gray-900">
+                  {row.action}
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-700">
                   {row.entity || '—'}
                 </td>
-                <td className="px-4 py-3 text-sm font-mono">{row.entity_id || '—'}</td>
-                <td className="px-4 py-3 text-sm text-gray-700">{row.ip || '—'}</td>
+                <td className="px-4 py-3 text-sm font-mono">
+                  {row.entity_id || '—'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-700">
+                  {row.ip || '—'}
+                </td>
 
                 <td className="px-4 py-3 text-right text-sm">
                   <button
                     className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
                     onClick={() => setSelected(row)}
                   >
-                    View JSON
+                    {t('audit.buttons.viewJson')}
                   </button>
                 </td>
               </tr>
@@ -274,7 +287,7 @@ export default function AuditPage() {
             {sortedLogs.length === 0 && (
               <tr>
                 <td className="px-4 py-6 text-center text-gray-500" colSpan={7}>
-                  No audit logs found.
+                  {t('audit.table.noLogs')}
                 </td>
               </tr>
             )}
@@ -285,7 +298,10 @@ export default function AuditPage() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          Page <span className="font-medium">{page}</span> / {totalPages}
+          {t('audit.pagination.page')}{' '}
+          <span className="font-medium">{page}</span>
+          {t('audit.pagination.of')}
+          {totalPages}
         </div>
         <div className="inline-flex gap-2">
           <button
@@ -309,12 +325,17 @@ export default function AuditPage() {
       {/* Drawer */}
       {selected && (
         <div className="fixed inset-0 z-40 flex items-end sm:items-center sm:justify-center">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSelected(null)} />
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setSelected(null)}
+          />
 
           <div className="relative z-50 w-full sm:max-w-2xl rounded-lg bg-white shadow-lg">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div>
-                <div className="text-lg font-semibold">{selected.action}</div>
+                <div className="text-lg font-semibold">
+                  {selected.action}
+                </div>
                 <div className="text-xs text-gray-500">
                   {selected.entity} • {selected.entity_id} •{' '}
                   {new Date(selected.created_at).toLocaleString()}
@@ -331,17 +352,25 @@ export default function AuditPage() {
 
             {/* Payload */}
             <div className="p-4 space-y-3">
-              <InfoRow label="Actor" value={selected.actor_id || '—'} />
-              <InfoRow label="IP" value={selected.ip || '—'} />
+              <InfoRow
+                label={t('audit.drawer.actor')}
+                value={selected.actor_id || '—'}
+              />
+              <InfoRow
+                label={t('audit.drawer.ip')}
+                value={selected.ip || '—'}
+              />
 
               <div className="flex items-center justify-between">
-                <div className="text-xs uppercase text-gray-500">Payload</div>
+                <div className="text-xs uppercase text-gray-500">
+                  {t('audit.drawer.payload')}
+                </div>
 
                 <button
                   className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
                   onClick={() => copyJSON(selected.data)}
                 >
-                  <Copy className="h-3.5 w-3.5" /> Copy JSON
+                  <Copy className="h-3.5 w-3.5" /> {t('audit.buttons.copyJson')}
                 </button>
               </div>
 
@@ -355,7 +384,7 @@ export default function AuditPage() {
                 className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
                 onClick={() => setSelected(null)}
               >
-                Close
+                {t('audit.buttons.close')}
               </button>
             </div>
           </div>
@@ -402,7 +431,9 @@ function Th({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-3 gap-2 text-sm">
-      <div className="text-xs uppercase text-gray-500 col-span-1">{label}</div>
+      <div className="text-xs uppercase text-gray-500 col-span-1">
+        {label}
+      </div>
       <div className="col-span-2 text-gray-900">{value}</div>
     </div>
   );
