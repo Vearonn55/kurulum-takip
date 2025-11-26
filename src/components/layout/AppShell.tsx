@@ -1,14 +1,13 @@
 // src/components/layout/AppShell.tsx
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   LayoutDashboard,
   Package,
   Calendar,
-  Users,
   ShoppingCart,
-  ClipboardList,
   BarChart3,
   Settings,
   User as UserIcon,
@@ -24,7 +23,7 @@ import { cn } from '../../lib/utils';
 import type { UserRole } from '../../types';
 
 interface NavigationItem {
-  name: string;
+  labelKey: string; // i18n key, e.g. "nav.dashboard"
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: UserRole[];
@@ -32,14 +31,54 @@ interface NavigationItem {
 }
 
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/app/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Orders', href: '/app/orders', icon: ShoppingCart, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Installations', href: '/app/installations', icon: Package, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Calendar', href: '/app/calendar', icon: Calendar, roles: ['ADMIN', 'STORE_MANAGER'] },
-  { name: 'Reports', href: '/app/admin/reports', icon: BarChart3, roles: ['ADMIN'] },
-  { name: 'Users & Roles', href: '/app/admin/users', icon: Shield, roles: ['ADMIN'] },
-  { name: 'Integrations', href: '/app/admin/integrations', icon: Settings, roles: ['ADMIN'] },
-  { name: 'Audit', href: '/app/audit', icon: Shield, roles: ['ADMIN'] },
+  {
+    labelKey: 'nav.dashboard',
+    href: '/app/dashboard',
+    icon: LayoutDashboard,
+    roles: ['ADMIN', 'STORE_MANAGER'],
+  },
+  {
+    labelKey: 'nav.orders',
+    href: '/app/orders',
+    icon: ShoppingCart,
+    roles: ['ADMIN', 'STORE_MANAGER'],
+  },
+  {
+    labelKey: 'nav.installations',
+    href: '/app/installations',
+    icon: Package,
+    roles: ['ADMIN', 'STORE_MANAGER'],
+  },
+  {
+    labelKey: 'nav.calendar',
+    href: '/app/calendar',
+    icon: Calendar,
+    roles: ['ADMIN', 'STORE_MANAGER'],
+  },
+  {
+    labelKey: 'nav.reports',
+    href: '/app/admin/reports',
+    icon: BarChart3,
+    roles: ['ADMIN'],
+  },
+  {
+    labelKey: 'nav.usersAndRoles',
+    href: '/app/admin/users',
+    icon: Shield,
+    roles: ['ADMIN'],
+  },
+  {
+    labelKey: 'nav.integrations',
+    href: '/app/admin/integrations',
+    icon: Settings,
+    roles: ['ADMIN'],
+  },
+  {
+    labelKey: 'nav.audit',
+    href: '/app/audit',
+    icon: Shield,
+    roles: ['ADMIN'],
+  },
 ];
 
 export default function AppShell() {
@@ -48,8 +87,11 @@ export default function AppShell() {
   const { user, hasAnyRole, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  const filteredNavigation = navigation.filter((item) => hasAnyRole(item.roles as any));
+  const filteredNavigation = navigation.filter((item) =>
+    hasAnyRole(item.roles as any),
+  );
 
   const handleLogout = async () => {
     try {
@@ -63,11 +105,11 @@ export default function AppShell() {
   const roleLabel = (role?: string) => {
     switch (role) {
       case 'ADMIN':
-        return 'Administrator';
+        return t('roles.admin');
       case 'STORE_MANAGER':
-        return 'Store Manager';
+        return t('roles.storeManager');
       case 'CREW':
-        return 'Installation Crew';
+        return t('roles.crew');
       default:
         return role ?? '';
     }
@@ -77,7 +119,10 @@ export default function AppShell() {
     <div className="h-screen flex overflow-hidden bg-gray-100">
       {/* Mobile sidebar */}
       <div
-        className={cn('fixed inset-0 z-40 md:hidden', sidebarOpen ? 'block' : 'hidden')}
+        className={cn(
+          'fixed inset-0 z-40 md:hidden',
+          sidebarOpen ? 'block' : 'hidden',
+        )}
         aria-hidden={!sidebarOpen}
       >
         <div
@@ -100,7 +145,9 @@ export default function AppShell() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
                 <Package className="h-5 w-5 text-white" />
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900">InstallOps</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">
+                {t('appName')}
+              </span>
             </div>
 
             <nav className="mt-5 space-y-1 px-2">
@@ -108,23 +155,25 @@ export default function AppShell() {
                 const isActive = location.pathname === item.href;
                 return (
                   <a
-                    key={item.name}
+                    key={item.href}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
                       'group flex items-center rounded-md px-2 py-2 text-base font-medium',
                       isActive
                         ? 'bg-primary-100 text-primary-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                     )}
                   >
                     <item.icon
                       className={cn(
                         'mr-4 h-6 w-6',
-                        isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
+                        isActive
+                          ? 'text-primary-500'
+                          : 'text-gray-400 group-hover:text-gray-500',
                       )}
                     />
-                    {item.name}
+                    {t(item.labelKey)}
                     {item.badge && (
                       <span className="ml-auto rounded-full bg-primary-100 px-2 py-1 text-xs font-medium text-primary-600">
                         {item.badge}
@@ -147,7 +196,9 @@ export default function AppShell() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
                   <Package className="h-5 w-5 text-white" />
                 </div>
-                <span className="ml-2 text-xl font-bold text-gray-900">InstallOps</span>
+                <span className="ml-2 text-xl font-bold text-gray-900">
+                  {t('appName')}
+                </span>
               </div>
 
               <nav className="mt-5 flex-1 space-y-1 px-2">
@@ -155,22 +206,24 @@ export default function AppShell() {
                   const isActive = location.pathname === item.href;
                   return (
                     <a
-                      key={item.name}
+                      key={item.href}
                       href={item.href}
                       className={cn(
                         'group flex items-center rounded-md px-2 py-2 text-sm font-medium',
                         isActive
                           ? 'bg-primary-100 text-primary-900'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
                       )}
                     >
                       <item.icon
                         className={cn(
                           'mr-3 h-5 w-5',
-                          isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
+                          isActive
+                            ? 'text-primary-500'
+                            : 'text-gray-400 group-hover:text-gray-500',
                         )}
                       />
-                      {item.name}
+                      {t(item.labelKey)}
                       {item.badge && (
                         <span className="ml-auto rounded-full bg-primary-100 px-2 py-1 text-xs font-medium text-primary-600">
                           {item.badge}
@@ -198,10 +251,11 @@ export default function AppShell() {
           </button>
 
           <div className="flex flex-1 justify-between px-4">
+            {/* Search */}
             <div className="flex flex-1">
               <form className="flex w-full md:ml-0" action="#" method="GET">
                 <label htmlFor="search-field" className="sr-only">
-                  Search
+                  {t('common.search')}
                 </label>
                 <div className="relative w-full text-gray-400 focus-within:text-gray-600">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center">
@@ -210,7 +264,7 @@ export default function AppShell() {
                   <input
                     id="search-field"
                     className="block h-full w-full border-transparent py-2 pl-8 pr-3 text-gray-900 placeholder-gray-500 focus:border-transparent focus:placeholder-gray-400 focus:outline-none focus:ring-0"
-                    placeholder="Search..."
+                    placeholder={t('common.searchPlaceholder')}
                     type="search"
                     name="search"
                   />
@@ -218,6 +272,7 @@ export default function AppShell() {
               </form>
             </div>
 
+            {/* Right side: notifications + user menu */}
             <div className="ml-4 flex items-center md:ml-6">
               <button
                 type="button"
@@ -233,7 +288,9 @@ export default function AppShell() {
                   className="flex max-w-xs items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                   onClick={() => setUserMenuOpen((v) => !v)}
                 >
-                  <span className="sr-only">Open user menu</span>
+                  <span className="sr-only">
+                    {t('header.openUserMenu')}
+                  </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100">
                     <UserIcon className="h-5 w-5 text-primary-600" />
                   </div>
@@ -247,20 +304,28 @@ export default function AppShell() {
                     <div className="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">
                       <div className="font-medium">{user?.name}</div>
                       <div className="text-gray-500">{user?.email}</div>
-                      <div className="text-xs text-gray-400">{roleLabel(user?.role)}</div>
+                      <div className="text-xs text-gray-400">
+                        {roleLabel(user?.role)}
+                      </div>
                     </div>
-                    <a href="/app/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Your Profile
+                    <a
+                      href="/app/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      {t('header.yourProfile')}
                     </a>
-                    <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                      Settings
+                    <a
+                      href="/app/settings"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      {t('header.settings')}
                     </a>
                     <button
                       onClick={handleLogout}
                       className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                       type="button"
                     >
-                      Sign out
+                      {t('header.signOut')}
                     </button>
                   </div>
                 )}

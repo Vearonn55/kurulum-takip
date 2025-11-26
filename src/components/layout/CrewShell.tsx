@@ -1,5 +1,7 @@
+// src/components/layout/CrewShell.tsx
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   Home,
@@ -16,17 +18,17 @@ import { useAuthStore } from '../../stores/auth-simple';
 import { cn } from '../../lib/utils';
 
 interface NavigationItem {
-  name: string;
+  labelKey: string; // i18n key, e.g. "nav.crewHome"
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: number;
 }
 
 const navigation: NavigationItem[] = [
-  { name: 'Home', href: '/crew', icon: Home },
-  { name: 'Jobs', href: '/crew/jobs', icon: ClipboardList },
-  { name: 'Issues', href: '/crew/issues', icon: AlertTriangle },
-  { name: 'Settings', href: '/crew/settings', icon: SettingsIcon },
+  { labelKey: 'nav.crewHome', href: '/crew', icon: Home },
+  { labelKey: 'nav.crewJobs', href: '/crew/jobs', icon: ClipboardList },
+  { labelKey: 'nav.crewIssues', href: '/crew/issues', icon: AlertTriangle },
+  { labelKey: 'nav.crewSettings', href: '/crew/settings', icon: SettingsIcon },
 ];
 
 export default function CrewShell() {
@@ -34,6 +36,7 @@ export default function CrewShell() {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Stubs until offline store is wired back
   const pendingActions: any[] = [];
@@ -81,7 +84,8 @@ export default function CrewShell() {
               <span className="text-sm text-yellow-800">You're offline</span>
             </div>
             <span className="text-xs text-yellow-600">
-              {pendingActions.length} action{pendingActions.length !== 1 ? 's' : ''} pending
+              {pendingActions.length} action
+              {pendingActions.length !== 1 ? 's' : ''} pending
             </span>
           </div>
         </div>
@@ -100,7 +104,9 @@ export default function CrewShell() {
               <span className="text-sm text-blue-800">
                 {isSyncing
                   ? 'Syncing...'
-                  : `${pendingActions.length} action${pendingActions.length !== 1 ? 's' : ''} pending sync`}
+                  : `${pendingActions.length} action${
+                      pendingActions.length !== 1 ? 's' : ''
+                    } pending sync`}
               </span>
             </div>
             {!isSyncing && (
@@ -122,7 +128,8 @@ export default function CrewShell() {
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
               <span className="text-sm text-green-800">
-                {completedActions.length} action{completedActions.length !== 1 ? 's' : ''} synced
+                {completedActions.length} action
+                {completedActions.length !== 1 ? 's' : ''} synced
               </span>
             </div>
             <button
@@ -147,22 +154,22 @@ export default function CrewShell() {
             const isActive = location.pathname === item.href;
             return (
               <a
-                key={item.name}
+                key={item.href}
                 href={item.href}
                 className={cn(
                   'flex flex-col items-center py-2 px-3 text-xs font-medium rounded-lg transition-colors',
                   isActive
                     ? 'text-primary-600 bg-primary-50'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50',
                 )}
               >
                 <item.icon
                   className={cn(
                     'h-5 w-5 mb-1',
-                    isActive ? 'text-primary-600' : 'text-gray-400'
+                    isActive ? 'text-primary-600' : 'text-gray-400',
                   )}
                 />
-                {item.name}
+                {t(item.labelKey)}
                 {item.badge && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                     {item.badge}

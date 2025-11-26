@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import {
   listInstallations,
@@ -273,6 +274,7 @@ function buildActivityIcon(log: AuditLog): {
 
 export default function AdminDashboard() {
   const [selectedStoreId, setSelectedStoreId] = useState<StoreId>('ALL');
+  const { t } = useTranslation();
 
   // Load installations (for metrics)
   const installationsQuery = useQuery({
@@ -302,17 +304,18 @@ export default function AdminDashboard() {
   });
 
   const storeOptions: StoreOption[] = useMemo(() => {
-    const opts: StoreOption[] = [{ id: 'ALL', label: 'All Stores' }];
+    const opts: StoreOption[] = [{ id: 'ALL', label: t('adminDashboard.allStores') }];
     if (storesQuery.data) {
       for (const s of storesQuery.data) {
         opts.push({ id: s.id, label: s.name });
       }
     }
     return opts;
-  }, [storesQuery.data]);
+  }, [storesQuery.data, t]);
 
   const selectedStoreLabel =
-    storeOptions.find((o) => o.id === selectedStoreId)?.label ?? 'All Stores';
+    storeOptions.find((o) => o.id === selectedStoreId)?.label ??
+    t('adminDashboard.allStores');
 
   const metrics = useMemo(
     () => computeStoreMetrics(installationsQuery.data),
@@ -418,20 +421,24 @@ export default function AdminDashboard() {
       {/* Header + Store Filter */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t('pages.adminDashboard')}
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Overview of your furniture installation operations
+            {t('adminDashboard.subtitle')}
           </p>
           {(installationsQuery.isLoading ||
             storesQuery.isLoading ||
             auditLogsQuery.isLoading) && (
-            <p className="mt-1 text-xs text-gray-400">Loading live data…</p>
+            <p className="mt-1 text-xs text-gray-400">
+              {t('adminDashboard.loading')}
+            </p>
           )}
           {(installationsQuery.isError ||
             storesQuery.isError ||
             auditLogsQuery.isError) && (
             <p className="mt-1 text-xs text-red-500">
-              Failed to load some data from the API.
+              {t('adminDashboard.loadError')}
             </p>
           )}
         </div>
@@ -439,7 +446,7 @@ export default function AdminDashboard() {
         {/* Store dropdown */}
         <div className="flex items-center gap-2">
           <label htmlFor="storeFilter" className="text-sm text-gray-600">
-            Store
+            {t('adminDashboard.storeLabel')}
           </label>
           <select
             id="storeFilter"
@@ -464,15 +471,15 @@ export default function AdminDashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-3">
-                  Monthly Installations
+                  {t('adminDashboard.monthlyTitle')}
                 </h3>
                 <div className="flex items-end gap-3">
                   <div className="text-4xl font-extrabold text-gray-900 leading-none">
                     {monthlyKpi.successCount}
                   </div>
                   <div className="text-base text-gray-500 mb-1">
-                    successful installations{' '}
-                    <span className="hidden sm:inline">•</span> of{' '}
+                    {t('adminDashboard.successfulInstallations')}{' '}
+                    <span className="hidden sm:inline">•</span> {t('adminDashboard.of')}{' '}
                     {monthlyKpi.totalCount}
                   </div>
                 </div>
@@ -489,7 +496,7 @@ export default function AdminDashboard() {
                         ? 'text-green-700 bg-green-100'
                         : 'text-red-700 bg-red-100'
                     }`}
-                    title="Change vs last month (percentage)"
+                    title={t('adminDashboard.changeVsLastMonth')}
                   >
                     {monthlyKpi.isUp ? (
                       <ArrowUpRight className="h-4 w-4 mr-1" />
@@ -499,7 +506,9 @@ export default function AdminDashboard() {
                     {monthlyKpi.deltaPctPoints}%
                   </div>
                 </div>
-                <div className="text-sm text-gray-500">vs last month</div>
+                <div className="text-sm text-gray-500">
+                  {t('adminDashboard.vsLastMonth')}
+                </div>
               </div>
             </div>
           </div>
@@ -511,15 +520,15 @@ export default function AdminDashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-3">
-                  Weekly Installations
+                  {t('adminDashboard.weeklyTitle')}
                 </h3>
                 <div className="flex items-end gap-3">
                   <div className="text-4xl font-extrabold text-gray-900 leading-none">
                     {weeklyKpi.successCount}
                   </div>
                   <div className="text-base text-gray-500 mb-1">
-                    successful installations{' '}
-                    <span className="hidden sm:inline">•</span> of{' '}
+                    {t('adminDashboard.successfulInstallations')}{' '}
+                    <span className="hidden sm:inline">•</span> {t('adminDashboard.of')}{' '}
                     {weeklyKpi.totalCount}
                   </div>
                 </div>
@@ -536,7 +545,7 @@ export default function AdminDashboard() {
                         ? 'text-green-700 bg-green-100'
                         : 'text-red-700 bg-red-100'
                     }`}
-                    title="Change vs last week (percentage)"
+                    title={t('adminDashboard.changeVsLastWeek')}
                   >
                     {weeklyKpi.isUp ? (
                       <ArrowUpRight className="h-4 w-4 mr-1" />
@@ -546,7 +555,9 @@ export default function AdminDashboard() {
                     {weeklyKpi.deltaPctPoints}%
                   </div>
                 </div>
-                <div className="text-sm text-gray-500">vs last week</div>
+                <div className="text-sm text-gray-500">
+                  {t('adminDashboard.vsLastWeek')}
+                </div>
               </div>
             </div>
           </div>
@@ -556,9 +567,11 @@ export default function AdminDashboard() {
       {/* Recent Activity (from audit logs) */}
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">Recent Activity</h3>
+          <h3 className="card-title">
+            {t('adminDashboard.recentActivityTitle')}
+          </h3>
           <p className="card-description">
-            Latest updates from your installation operations (live audit logs)
+            {t('adminDashboard.recentActivityDescription')}
           </p>
         </div>
         <div className="card-content">
@@ -604,7 +617,7 @@ export default function AdminDashboard() {
 
               {filteredActivities.length === 0 && (
                 <li className="py-6 text-sm text-gray-500">
-                  No recent activity for this filter.
+                  {t('adminDashboard.noRecentActivity')}
                 </li>
               )}
             </ul>
@@ -620,9 +633,11 @@ export default function AdminDashboard() {
         >
           <div className="card-content text-center">
             <ShoppingCart className="h-8 w-8 text-primary-600 mx-auto mb-2" />
-            <h3 className="text-sm font-medium text-gray-900">View Orders</h3>
+            <h3 className="text-sm font-medium text-gray-900">
+              {t('adminDashboard.quickViewOrdersTitle')}
+            </h3>
             <p className="text-xs text-gray-500 mt-1">
-              Manage and track orders
+              {t('adminDashboard.quickViewOrdersSubtitle')}
             </p>
           </div>
         </a>
@@ -634,10 +649,10 @@ export default function AdminDashboard() {
           <div className="card-content text-center">
             <Package className="h-8 w-8 text-primary-600 mx-auto mb-2" />
             <h3 className="text-sm font-medium text-gray-900">
-              View Installations
+              {t('adminDashboard.quickViewInstallationsTitle')}
             </h3>
             <p className="text-xs text-gray-500 mt-1">
-              Manage all installations
+              {t('adminDashboard.quickViewInstallationsSubtitle')}
             </p>
           </div>
         </a>
@@ -648,8 +663,12 @@ export default function AdminDashboard() {
         >
           <div className="card-content text-center">
             <Users className="h-8 w-8 text-primary-600 mx-auto mb-2" />
-            <h3 className="text-sm font-medium text-gray-900">Manage Users</h3>
-            <p className="text-xs text-gray-500 mt-1">Add and edit users</p>
+            <h3 className="text-sm font-medium text-gray-900">
+              {t('adminDashboard.quickManageUsersTitle')}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {t('adminDashboard.quickManageUsersSubtitle')}
+            </p>
           </div>
         </a>
 
@@ -659,9 +678,11 @@ export default function AdminDashboard() {
         >
           <div className="card-content text-center">
             <TrendingUp className="h-8 w-8 text-primary-600 mx-auto mb-2" />
-            <h3 className="text-sm font-medium text-gray-900">View Reports</h3>
+            <h3 className="text-sm font-medium text-gray-900">
+              {t('adminDashboard.quickViewReportsTitle')}
+            </h3>
             <p className="text-xs text-gray-500 mt-1">
-              Analytics and insights
+              {t('adminDashboard.quickViewReportsSubtitle')}
             </p>
           </div>
         </a>

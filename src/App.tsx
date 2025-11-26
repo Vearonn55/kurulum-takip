@@ -53,9 +53,8 @@ import YourProfile from './pages/shared/YourProfile';
 import AuditPage from './pages/shared/AuditPage';
 import NotFoundPage from './pages/shared/NotFoundPage';
 import ForbiddenPage from './pages/shared/ForbiddenPage';
+import SettingsPage from './pages/shared/SettingsPage';
 
-// Dev-only controls (draggable role switcher + RQ position helper)
-import DevControls from './dev/DevControls';
 
 type DevtoolsCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -217,6 +216,15 @@ const getDefaultRoute = () => {
                   element={
                     <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
                       <YourProfile />
+                    </RoleGuard>
+                  }
+                />
+                {/* Settings */}
+                <Route
+                  path="settings"
+                  element={
+                    <RoleGuard roles={['ADMIN', 'STORE_MANAGER']}>
+                      <SettingsPage />
                     </RoleGuard>
                   }
                 />
