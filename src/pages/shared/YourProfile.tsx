@@ -1,3 +1,4 @@
+// src/pages/manager/YourProfile.tsx
 import { useEffect, useState } from 'react';
 import {
   User as UserIcon,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { apiGet, isAxiosError } from '../../api/http';
+import { useTranslation } from 'react-i18next';
 
 type MeResponse = {
   id: string;
@@ -21,21 +23,23 @@ type MeResponse = {
   updated_at?: string;
 };
 
-const roleLabel = (role?: string) => {
+const roleLabel = (role?: string, t?: (key: string) => string) => {
   if (!role) return '';
   switch (role.toUpperCase()) {
     case 'ADMIN':
-      return 'Administrator';
+      return t ? t('profilePage.roleLabels.admin') : 'Administrator';
     case 'STORE_MANAGER':
-      return 'Store Manager';
+      return t ? t('profilePage.roleLabels.storeManager') : 'Store Manager';
     case 'CREW':
-      return 'Installation Crew';
+      return t ? t('profilePage.roleLabels.crew') : 'Installation Crew';
     default:
       return role;
   }
 };
 
 export default function YourProfile() {
+  const { t } = useTranslation('common');
+
   const [profile, setProfile] = useState<MeResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,9 +87,11 @@ export default function YourProfile() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Your Profile</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t('profilePage.header.title')}
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
-            View your account details and role permissions in InstallOps.
+            {t('profilePage.header.subtitle')}
           </p>
         </div>
       </div>
@@ -95,7 +101,9 @@ export default function YourProfile() {
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4" />
           <div>
-            <p className="font-medium">Couldn&apos;t load your profile</p>
+            <p className="font-medium">
+              {t('profilePage.error.title')}
+            </p>
             <p className="text-xs text-red-600/80">{error}</p>
           </div>
         </div>
@@ -109,7 +117,9 @@ export default function YourProfile() {
               <UserIcon className="h-5 w-5 text-primary-600" />
             </div>
             <div>
-            <h2 className="card-title">Account details</h2>
+              <h2 className="card-title">
+                {t('profilePage.accountCard.title')}
+              </h2>
             </div>
           </div>
 
@@ -126,7 +136,7 @@ export default function YourProfile() {
                 <div>
                   <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                     <Hash className="h-3 w-3" />
-                    User ID
+                    {t('profilePage.accountCard.fields.userId')}
                   </dt>
                   <dd className="mt-1 font-mono text-xs text-gray-900 break-all">
                     {profile?.id ?? '—'}
@@ -136,13 +146,13 @@ export default function YourProfile() {
                 <div>
                   <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                     <Shield className="h-3 w-3" />
-                    Role
+                    {t('profilePage.accountCard.fields.role')}
                   </dt>
                   <dd className="mt-1 text-gray-900">
                     {profile?.role ? (
                       <>
                         <span className="font-medium">
-                          {roleLabel(profile.role)}
+                          {roleLabel(profile.role, (key) => t(key))}
                         </span>
                         <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-mono uppercase text-gray-600">
                           {profile.role}
@@ -157,7 +167,7 @@ export default function YourProfile() {
                 <div>
                   <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                     <Hash className="h-3 w-3" />
-                    Role ID
+                    {t('profilePage.accountCard.fields.roleId')}
                   </dt>
                   <dd className="mt-1 font-mono text-xs text-gray-900 break-all">
                     {profile?.role_id ?? '—'}
@@ -167,7 +177,7 @@ export default function YourProfile() {
                 <div>
                   <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-500">
                     <Mail className="h-3 w-3" />
-                    Email
+                    {t('profilePage.accountCard.fields.email')}
                   </dt>
                   <dd className="mt-1 text-gray-900">
                     {profile?.email ?? '—'}
@@ -185,7 +195,9 @@ export default function YourProfile() {
               <KeyRound className="h-5 w-5 text-indigo-600" />
             </div>
             <div>
-            <h2 className="card-title">Permissions</h2>
+              <h2 className="card-title">
+                {t('profilePage.permissionsCard.title')}
+              </h2>
             </div>
           </div>
 
@@ -198,7 +210,7 @@ export default function YourProfile() {
               </div>
             ) : permissions.length === 0 ? (
               <p className="text-sm text-gray-500">
-                No explicit permissions were returned for this role.
+                {t('profilePage.permissionsCard.noPermissions')}
               </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">

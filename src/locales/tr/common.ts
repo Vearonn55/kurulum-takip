@@ -8,7 +8,7 @@ const trCommon = {
     installations: 'Kurulumlar',
     calendar: 'Takvim',
     reports: 'Raporlar',
-    usersAndRoles: 'Kullanıcılar & Roller',
+    usersAndRoles: 'Kullanıcılar',
     integrations: 'Entegrasyonlar',
     audit: 'Denetim',
 
@@ -83,7 +83,7 @@ adminDashboard: {
 
 usersPage: {
     title: 'Kullanıcılar',
-    subtitle: 'Erişimi ve rolleri yönetin',
+    subtitle: 'Erişimleri yönetin',
 
     refresh: 'Yenile',
     newUserButton: 'Yeni Kullanıcı',
@@ -271,6 +271,226 @@ calendarPage: {
 
   timeColumn: 'Saat',
 },
+
+installationsPage: {
+  title: 'Kurulumlar',
+  subtitle: 'Yaklaşan işler için plan durumu ve ilerlemeyi görüntüleyin.',
+  createButton: 'Kurulum oluştur',
+
+  filters: {
+    searchLabel: 'Arama',
+    searchPlaceholder:
+      'Kurulum ID, harici sipariş ID, mağaza, adres…',
+    statusLabel: 'Durum',
+    status: {
+      all: 'Tümü',
+      pending: 'Beklemede',
+      staged: 'Hazırlanıyor',
+      in_progress: 'Devam ediyor',
+      completed: 'Tamamlandı',
+      failed: 'Başarısız',
+      cancelled: 'İptal edildi',
+    },
+    zoneLabel: 'Bölge (şehir)',
+    allZones: 'Tüm bölgeler',
+    from: 'Başlangıç',
+    to: 'Bitiş',
+  },
+
+  chips: {
+    all: 'Tümü',
+    pending: 'Beklemede',
+    staged: 'Hazırlanıyor',
+    in_progress: 'Devam ediyor',
+    completed: 'Tamamlandı',
+    failed: 'Başarısız',
+    cancelled: 'İptal edildi',
+  },
+
+  table: {
+    start: 'Başlangıç',
+    installation: 'Kurulum',
+    store: 'Mağaza',
+    zone: 'Bölge',
+    status: 'Durum',
+    crew: 'Ekip',
+    idPrefix: 'ID:',
+  },
+
+  statusLabels: {
+    pending: 'Beklemede',
+    staged: 'Hazırlanıyor',
+    in_progress: 'Devam ediyor',
+    completed: 'Tamamlandı',
+    failed: 'Başarısız',
+    cancelled: 'İptal edildi',
+  },
+
+  crew: {
+    assigned: 'atanmış',
+  },
+
+  actions: {
+    view: 'Görüntüle',
+  },
+
+  loading: 'Kurulumlar yükleniyor…',
+  loadError: 'Kurulumlar yüklenemedi.',
+  noResults: 'Filtrelere uyan kurulum bulunamadı.',
+
+  pagination: {
+    showing: 'Gösterilen',
+    of: 'toplam',
+    prev: 'Önceki',
+    next: 'Sonraki',
+    page: 'Sayfa',
+  },
+
+  sort: 'Sırala',
+},
+
+ordersPage: {
+  title: "Siparişler",
+  subtitle: "Harici sistemden içe aktarılan yalnızca-okunur liste.",
+
+  filters: {
+    searchLabel: "Arama",
+    searchPlaceholder: "Sipariş ID, müşteri, mağaza…",
+
+    statusLabel: "Durum",
+    status: {
+      all: "Tümü",
+      pending: "Beklemede",
+      confirmed: "Onaylandı",
+      cancelled: "İptal edildi",
+    },
+
+    storeLabel: "Mağaza",
+    storeAll: "Tüm mağazalar",
+
+    from: "Başlangıç",
+    to: "Bitiş",
+  },
+
+  table: {
+    placed: "Tarih",
+    order: "Sipariş",
+    customer: "Müşteri",
+    store: "Mağaza",
+    items: "Ürünler",
+    status: "Durum",
+  },
+
+  status: {
+    pending: "Beklemede",
+    confirmed: "Onaylandı",
+    cancelled: "İptal edildi",
+  },
+
+  loading: "Siparişler yükleniyor…",
+  noResults: "Filtrelere uyan sipariş bulunamadı.",
+
+  actions: {
+    view: "Görüntüle",
+  },
+
+  pagination: {
+    showing: "Gösterilen",
+    of: "toplam",
+    prev: "Önceki",
+    next: "Sonraki",
+    page: "Sayfa",
+  },
+},
+
+installationDetailPage: {
+  header: {
+    title: 'Kurulum',
+    subtitle: 'Detaylı görünüm',
+  },
+
+  buttons: {
+    openCalendar: 'Takvimi Aç',
+    viewOrder: 'Siparişi Görüntüle',
+  },
+
+  statusCard: {
+    title: 'Durum',
+    subtitle: 'Durum ve zamanlama',
+    store: 'Mağaza:',
+    start: 'Başlangıç:',
+    end: 'Bitiş:',
+  },
+
+  crewCard: {
+    title: 'Ekip',
+    subtitle: 'Atanmış ekip',
+    none: 'Herhangi bir ekip atanmadı.',
+    status: {
+      accepted: 'Kabul edildi',
+      declined: 'Reddedildi',
+      pending: 'Beklemede',
+    },
+    memberFallback: 'Ekip Üyesi',
+    roleFallback: 'Ekip',
+  },
+
+  notesCard: {
+    title: 'Notlar',
+    subtitle: 'Özel talimatlar',
+    none: 'Herhangi bir not yok.',
+  },
+
+  itemsCard: {
+    title: 'Ürünler',
+    subtitle: 'Bu kuruluma ait sipariş ürünleri',
+    table: {
+      product: 'Ürün',
+      room: 'Oda',
+      instructions: 'Talimatlar',
+    },
+    none: 'Herhangi bir kurulum ürünü yok.',
+  },
+
+  loading: 'Kurulum yükleniyor…',
+  loadError: 'Kurulum yüklenemedi.',
+},
+
+profilePage: {
+  header: {
+    title: 'Profiliniz',
+    subtitle: 'InstallOps içinde hesap detaylarınızı ve rol izinlerinizi görüntüleyin.',
+  },
+
+  error: {
+    title: 'Profiliniz yüklenemedi',
+  },
+
+  accountCard: {
+    title: 'Hesap detayları',
+    fields: {
+      userId: 'Kullanıcı ID',
+      role: 'Rol',
+      roleId: 'Rol ID',
+      email: 'E-posta',
+    },
+  },
+
+  permissionsCard: {
+    title: 'İzinler',
+    noPermissions: 'Bu rol için açıkça tanımlanmış bir izin döndürülmedi.',
+  },
+
+  roleLabels: {
+    admin: 'Yönetici',
+    storeManager: 'Mağaza Müdürü',
+    crew: 'Kurulum Ekibi',
+  },
+},
+
+
+
+
 
 
 };

@@ -24,6 +24,7 @@ import {
   type InstallStatus,
 } from '../../api/installations';
 import { listStores, type Store } from '../../api/stores';
+import { useTranslation } from 'react-i18next';
 
 /* -------------------------------- Types -------------------------------- */
 // UI status (we map backend → UI)
@@ -112,9 +113,10 @@ function makeRow(inst: Installation, store?: Store): Row {
 /* --------------------------------- Page -------------------------------- */
 export default function InstallationsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   // Filters
-    // Force-open date picker (Chrome / Edge / Safari)
+  // Force-open date picker (Chrome / Edge / Safari)
   const handleDateClick = (e: React.MouseEvent<HTMLInputElement>) => {
     const input = e.currentTarget as HTMLInputElement;
     if (typeof (input as any).showPicker === 'function') {
@@ -270,9 +272,11 @@ export default function InstallationsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Installations</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t('installationsPage.title')}
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Schedule status and progress for upcoming jobs.
+            {t('installationsPage.subtitle')}
           </p>
         </div>
         <button
@@ -280,19 +284,21 @@ export default function InstallationsPage() {
           className="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Create installation
+          {t('installationsPage.createButton')}
         </button>
       </div>
 
       {/* Filters */}
       <div className="grid grid-cols-1 gap-3 rounded-xl border bg-white p-3 shadow-sm md:grid-cols-5">
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs text-gray-600">Search</label>
+          <label className="mb-1 block text-xs text-gray-600">
+            {t('installationsPage.filters.searchLabel')}
+          </label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               className="input w-full pl-8"
-              placeholder="Installation ID, external order ID, store, address…"
+              placeholder={t('installationsPage.filters.searchPlaceholder')}
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -303,7 +309,9 @@ export default function InstallationsPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-600">Status</label>
+          <label className="mb-1 block text-xs text-gray-600">
+            {t('installationsPage.filters.statusLabel')}
+          </label>
           <div className="relative">
             <Filter className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <select
@@ -314,19 +322,35 @@ export default function InstallationsPage() {
                 setPage(1);
               }}
             >
-              <option value="all">All</option>
-              <option value="pending">Pending</option>
-              <option value="staged">Staged</option>
-              <option value="in_progress">In progress</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="all">
+                {t('installationsPage.filters.status.all')}
+              </option>
+              <option value="pending">
+                {t('installationsPage.filters.status.pending')}
+              </option>
+              <option value="staged">
+                {t('installationsPage.filters.status.staged')}
+              </option>
+              <option value="in_progress">
+                {t('installationsPage.filters.status.in_progress')}
+              </option>
+              <option value="completed">
+                {t('installationsPage.filters.status.completed')}
+              </option>
+              <option value="failed">
+                {t('installationsPage.filters.status.failed')}
+              </option>
+              <option value="cancelled">
+                {t('installationsPage.filters.status.cancelled')}
+              </option>
             </select>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-gray-600">Zone (city)</label>
+          <label className="mb-1 block text-xs text-gray-600">
+            {t('installationsPage.filters.zoneLabel')}
+          </label>
           <div className="relative">
             <MapPin className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <select
@@ -337,7 +361,9 @@ export default function InstallationsPage() {
                 setPage(1);
               }}
             >
-              <option value="all">All zones</option>
+              <option value="all">
+                {t('installationsPage.filters.allZones')}
+              </option>
               {zoneOptions.map((z) => (
                 <option key={z} value={z}>
                   {z}
@@ -349,14 +375,16 @@ export default function InstallationsPage() {
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="mb-1 block text-xs text-gray-600">From</label>
+            <label className="mb-1 block text-xs text-gray-600">
+              {t('installationsPage.filters.from')}
+            </label>
             <div className="relative">
               <CalendarIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
               <input
                 type="date"
                 className="input w-full pl-8"
                 value={from}
-                onClick={handleDateClick} 
+                onClick={handleDateClick}
                 onChange={(e) => {
                   setFrom(e.target.value);
                   setPage(1);
@@ -365,14 +393,16 @@ export default function InstallationsPage() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-600">To</label>
+            <label className="mb-1 block text-xs text-gray-600">
+              {t('installationsPage.filters.to')}
+            </label>
             <div className="relative">
               <CalendarIcon className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
               <input
                 type="date"
                 className="input w-full pl-8"
                 value={to}
-                onClick={handleDateClick} 
+                onClick={handleDateClick}
                 onChange={(e) => {
                   setTo(e.target.value);
                   setPage(1);
@@ -386,7 +416,7 @@ export default function InstallationsPage() {
       {/* Status quick filters */}
       <div className="flex flex-wrap gap-2">
         <QuickChip
-          label="All"
+          label={t('installationsPage.chips.all')}
           value={counts.all}
           active={status === 'all'}
           onClick={() => {
@@ -395,7 +425,7 @@ export default function InstallationsPage() {
           }}
         />
         <QuickChip
-          label="Pending"
+          label={t('installationsPage.chips.pending')}
           value={counts.pending}
           tone="gray"
           icon={<Clock className="h-3.5 w-3.5" />}
@@ -406,7 +436,7 @@ export default function InstallationsPage() {
           }}
         />
         <QuickChip
-          label="Staged"
+          label={t('installationsPage.chips.staged')}
           value={counts.staged}
           tone="blue"
           icon={<Wrench className="h-3.5 w-3.5" />}
@@ -417,7 +447,7 @@ export default function InstallationsPage() {
           }}
         />
         <QuickChip
-          label="In progress"
+          label={t('installationsPage.chips.in_progress')}
           value={counts.in_progress}
           tone="amber"
           icon={<Clock className="h-3.5 w-3.5" />}
@@ -428,7 +458,7 @@ export default function InstallationsPage() {
           }}
         />
         <QuickChip
-          label="Completed"
+          label={t('installationsPage.chips.completed')}
           value={counts.completed}
           tone="emerald"
           icon={<CheckCircle2 className="h-3.5 w-3.5" />}
@@ -439,7 +469,7 @@ export default function InstallationsPage() {
           }}
         />
         <QuickChip
-          label="Failed"
+          label={t('installationsPage.chips.failed')}
           value={counts.failed}
           tone="rose"
           icon={<AlertTriangle className="h-3.5 w-3.5" />}
@@ -450,7 +480,7 @@ export default function InstallationsPage() {
           }}
         />
         <QuickChip
-          label="Cancelled"
+          label={t('installationsPage.chips.cancelled')}
           value={counts.cancelled}
           tone="zinc"
           icon={<XCircle className="h-3.5 w-3.5" />}
@@ -468,31 +498,35 @@ export default function InstallationsPage() {
           <thead className="bg-gray-50 text-xs text-gray-600">
             <tr>
               <Th
-                label="Start"
+                label={t('installationsPage.table.start')}
                 active={sortBy === 'start'}
                 dir={sortDir}
                 onClick={() => toggleSort('start')}
               />
-              <th className="px-3 py-2 text-left">Installation</th>
+              <th className="px-3 py-2 text-left">
+                {t('installationsPage.table.installation')}
+              </th>
               <Th
-                label="Store"
+                label={t('installationsPage.table.store')}
                 active={sortBy === 'customer'}
                 dir={sortDir}
                 onClick={() => toggleSort('customer')}
               />
               <Th
-                label="Zone"
+                label={t('installationsPage.table.zone')}
                 active={sortBy === 'zone'}
                 dir={sortDir}
                 onClick={() => toggleSort('zone')}
               />
               <Th
-                label="Status"
+                label={t('installationsPage.table.status')}
                 active={sortBy === 'status'}
                 dir={sortDir}
                 onClick={() => toggleSort('status')}
               />
-              <th className="w-28 px-3 py-2 text-left">Crew</th>
+              <th className="w-28 px-3 py-2 text-left">
+                {t('installationsPage.table.crew')}
+              </th>
               <th className="w-24 px-3 py-2"></th>
             </tr>
           </thead>
@@ -500,19 +534,19 @@ export default function InstallationsPage() {
             {installationsQuery.isLoading ? (
               <tr>
                 <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
-                  Loading installations…
+                  {t('installationsPage.loading')}
                 </td>
               </tr>
             ) : installationsQuery.isError ? (
               <tr>
                 <td colSpan={7} className="px-3 py-6 text-center text-red-600">
-                  Failed to load installations.
+                  {t('installationsPage.loadError')}
                 </td>
               </tr>
             ) : paged.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
-                  No installations match the filters.
+                  {t('installationsPage.noResults')}
                 </td>
               </tr>
             ) : (
@@ -528,7 +562,9 @@ export default function InstallationsPage() {
                     <div className="font-medium text-gray-900">
                       {r.externalOrderId || r.id}
                     </div>
-                    <div className="text-xs text-gray-500">ID: {r.id}</div>
+                    <div className="text-xs text-gray-500">
+                      {t('installationsPage.table.idPrefix')} {r.id}
+                    </div>
                   </td>
                   <td className="px-3 py-2">
                     <div className="font-medium text-gray-900">{r.storeName}</div>
@@ -538,13 +574,19 @@ export default function InstallationsPage() {
                   </td>
                   <td className="px-3 py-2">{r.city ?? '—'}</td>
                   <td className="px-3 py-2">
-                    <StatusPill status={r.status} />
+                    <StatusPill
+                      status={r.status}
+                      labelOverride={t(
+                        `installationsPage.statusLabels.${r.status}`
+                      )}
+                    />
                   </td>
                   <td className="px-3 py-2">
                     {r.crewCount > 0 ? (
                       <span className="inline-flex items-center rounded border px-2 py-0.5 text-[11px] text-gray-700">
                         <Users className="mr-1 h-3.5 w-3.5" />
-                        {r.crewCount} assigned
+                        {r.crewCount}{' '}
+                        {t('installationsPage.crew.assigned')}
                       </span>
                     ) : (
                       <span className="text-xs text-gray-400">—</span>
@@ -555,7 +597,7 @@ export default function InstallationsPage() {
                       onClick={() => goDetail(r.id)}
                       className="text-primary-600 hover:text-primary-800"
                     >
-                      View
+                      {t('installationsPage.actions.view')}
                     </button>
                   </td>
                 </tr>
@@ -567,8 +609,9 @@ export default function InstallationsPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-top p-3 text-sm border-t">
           <div className="text-gray-600">
-            Showing{' '}
-            <span className="font-medium text-gray-900">{paged.length}</span> of{' '}
+            {t('installationsPage.pagination.showing')}{' '}
+            <span className="font-medium text-gray-900">{paged.length}</span>{' '}
+            {t('installationsPage.pagination.of')}{' '}
             <span className="font-medium text-gray-900">{filtered.length}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -580,10 +623,11 @@ export default function InstallationsPage() {
                 page === 1 ? 'opacity-50' : 'hover:bg-gray-50'
               )}
             >
-              Prev
+              {t('installationsPage.pagination.prev')}
             </button>
             <div>
-              Page <span className="font-medium">{page}</span> / {totalPages}
+              {t('installationsPage.pagination.page')}{' '}
+              <span className="font-medium">{page}</span> / {totalPages}
             </div>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -593,7 +637,7 @@ export default function InstallationsPage() {
                 page === totalPages ? 'opacity-50' : 'hover:bg-gray-50'
               )}
             >
-              Next
+              {t('installationsPage.pagination.next')}
             </button>
           </div>
         </div>
@@ -615,7 +659,13 @@ function statusRank(s: InstallationStatus) {
   return order.indexOf(s);
 }
 
-function StatusPill({ status }: { status: InstallationStatus }) {
+function StatusPill({
+  status,
+  labelOverride,
+}: {
+  status: InstallationStatus;
+  labelOverride?: string;
+}) {
   const cfg: Record<
     InstallationStatus,
     { tone: string; Icon: any; label: string }
@@ -660,7 +710,7 @@ function StatusPill({ status }: { status: InstallationStatus }) {
       )}
     >
       <Icon className="h-3.5 w-3.5" />
-      {label}
+      {labelOverride ?? label}
     </span>
   );
 }
@@ -678,6 +728,7 @@ function Th({
   dir: 'asc' | 'desc';
   className?: string;
 }) {
+  const { t } = useTranslation('common');
   return (
     <th className={cn('px-3 py-2 text-left font-semibold text-gray-700', className)}>
       <button
@@ -686,7 +737,7 @@ function Th({
           'inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-gray-100',
           active && 'text-primary-700'
         )}
-        title="Sort"
+        title={t('installationsPage.sort')}
       >
         {label}{' '}
         <ArrowUpDown
