@@ -488,8 +488,95 @@ profilePage: {
   },
 },
 
+  createInstallationPage: {
+    header: {
+      title: 'Create Installation',
+      subtitle: 'Schedule a new installation for an order',
+    },
 
+    store: {
+      title: 'Store',
+      subtitle: 'Select the store where this installation belongs',
+      loading: 'Loading stores…',
+      usingAssigned: 'Using your assigned store',
+      selectPlaceholder: 'Select store',
+      loadError:
+        'Failed to load stores. You may not be able to create installations.',
+    },
 
+    order: {
+      title: 'Order',
+      subtitle:
+        'Type the external order ID exactly as it appears in the store system (no lookup, manual entry).',
+      externalIdLabel: 'External Order ID',
+      externalIdPlaceholder: 'e.g. 1234, 2025-0001, POS-ABC-999…',
+    },
+
+    schedule: {
+      title: 'Schedule',
+      dateLabel: 'Date',
+      timeLabel: 'Start time',
+    },
+
+    zone: {
+      title: 'Zone',
+      subtitle: 'Select the TRNC zone',
+      selectPlaceholder: 'Select zone',
+    },
+
+    difficulty: {
+      title: 'Installation Difficulty',
+      subtitle: 'Select one option',
+      options: {
+        easy: 'Easy',
+        intermediate: 'Intermediate',
+        hard: 'Hard',
+      },
+      selected: 'Selected:',
+      noneSelected: 'No difficulty selected.',
+    },
+
+    notes: {
+      title: 'Notes',
+      subtitle: 'Special instructions for the crew',
+      placeholder:
+        'e.g., call customer before arrival, fragile items, building access notes…',
+    },
+
+    crew: {
+      title: 'Assign Crew',
+      subtitle: 'Select up to 3 crew members',
+      loading: 'Loading crew…',
+      loadError: 'Failed to load crew.',
+      maxTooltip: 'Maximum 3 members',
+      noneSelected: 'No crew selected yet.',
+      removeAria: 'Remove {{name}}',
+      removeTitle: 'Remove',
+    },
+
+    actions: {
+      title: 'Actions',
+      subtitle: 'Save and schedule',
+      scheduling: 'Scheduling…',
+      submit: 'Create Installation',
+      hint:
+        'Select store, enter external order ID, date, time and difficulty to enable.',
+    },
+
+    validation: {
+      storeRequired: 'Store is required',
+      externalOrderIdRequired: 'External order ID is required',
+      dateRequired: 'Date is required',
+      startTimeRequired: 'Start time is required',
+      difficultyRequired: 'Installation difficulty is required',
+    },
+
+    toasts: {
+      created: 'Installation created',
+      createFailed: 'Failed to create installation',
+      maxCrew: 'You can assign up to 3 crew members',
+    },
+  },
 
 
 };

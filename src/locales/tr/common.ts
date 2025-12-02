@@ -488,6 +488,96 @@ profilePage: {
   },
 },
 
+  createInstallationPage: {
+    header: {
+      title: 'Kurulum Oluştur',
+      subtitle: 'Bir sipariş için yeni kurulum planlayın',
+    },
+
+    store: {
+      title: 'Mağaza',
+      subtitle: 'Bu kuruluma ait mağazayı seçin',
+      loading: 'Mağazalar yükleniyor…',
+      usingAssigned: 'Size atanmış mağaza kullanılıyor',
+      selectPlaceholder: 'Mağaza seçin',
+      loadError:
+        'Mağazalar yüklenemedi. Kurulum oluşturamayabilirsiniz.',
+    },
+
+    order: {
+      title: 'Sipariş',
+      subtitle:
+        'Dış sipariş numarasını, mağaza sisteminde göründüğü şekilde aynen yazın.',
+      externalIdLabel: 'Dış Sipariş Numarası',
+      externalIdPlaceholder: 'Örn: 1234, 2025-0001, POS-ABC-999…',
+    },
+
+    schedule: {
+      title: 'Zamanlama',
+      dateLabel: 'Tarih',
+      timeLabel: 'Başlangıç saati',
+    },
+
+    zone: {
+      title: 'Bölge',
+      subtitle: 'KKTC bölgesini seçin',
+      selectPlaceholder: 'Bölge seçin',
+    },
+
+    difficulty: {
+      title: 'Kurulum Zorluğu',
+      subtitle: 'Bir seçenek seçin',
+      options: {
+        easy: 'Kolay',
+        intermediate: 'Orta',
+        hard: 'Zor',
+      },
+      selected: 'Seçilen:',
+      noneSelected: 'Herhangi bir zorluk seçilmedi.',
+    },
+
+    notes: {
+      title: 'Notlar',
+      subtitle: 'Ekip için özel talimatlar',
+      placeholder:
+        'Örn: müşteriyi varıştan önce arayın, kırılabilir ürünler, bina giriş bilgileri…',
+    },
+
+    crew: {
+      title: 'Ekip Ata',
+      subtitle: 'En fazla 3 ekip üyesi seçin',
+      loading: 'Ekip yükleniyor…',
+      loadError: 'Ekip yüklenemedi.',
+      maxTooltip: 'Maksimum 3 üye',
+      noneSelected: 'Henüz ekip seçilmedi.',
+      removeAria: '{{name}} kullanıcısını kaldır',
+      removeTitle: 'Kaldır',
+    },
+
+    actions: {
+      title: 'İşlemler',
+      subtitle: 'Kaydet ve planla',
+      scheduling: 'Planlanıyor…',
+      submit: 'Kurulum Oluştur',
+      hint:
+        'Aktifleştirmek için mağaza seçin, dış sipariş numarası, tarih, saat ve zorluk bilgilerini girin.',
+    },
+
+    validation: {
+      storeRequired: 'Mağaza seçimi zorunludur',
+      externalOrderIdRequired: 'Dış sipariş numarası zorunludur',
+      dateRequired: 'Tarih zorunludur',
+      startTimeRequired: 'Başlangıç saati zorunludur',
+      difficultyRequired: 'Kurulum zorluğu seçimi zorunludur',
+    },
+
+    toasts: {
+      created: 'Kurulum oluşturuldu',
+      createFailed: 'Kurulum oluşturulamadı',
+      maxCrew: 'En fazla 3 ekip üyesi atayabilirsiniz',
+    },
+  },
+
 
 
 

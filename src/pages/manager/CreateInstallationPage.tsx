@@ -23,6 +23,7 @@ import {
 } from '../../api/installations';
 import { listUsers, type User } from '../../api/users';
 import { listStores, type Store } from '../../api/stores';
+import { useTranslation } from 'react-i18next';
 
 // ---------- helpers ----------
 const toISODateTime = (date: string, time: string) => {
@@ -63,6 +64,7 @@ export default function CreateInstallationPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const { t } = useTranslation('common');
 
   const myStoreId = (user as any)?.store_id as string | undefined;
 
@@ -118,7 +120,7 @@ export default function CreateInstallationPage() {
         return prev.filter((x) => x !== id);
       }
       if (prev.length >= 3) {
-        toast.error('You can assign up to 3 crew members');
+        toast.error(t('createInstallationPage.toasts.maxCrew'));
         return prev;
       }
       return [...prev, id];
@@ -130,27 +132,30 @@ export default function CreateInstallationPage() {
     mutationFn: async () => {
       const storeId = selectedStoreId || myStoreId;
       if (!storeId) {
-        throw new Error('Store is required');
+        throw new Error(t('createInstallationPage.validation.storeRequired'));
       }
 
       const scheduled_start = toISODateTime(date, timeStart);
       const scheduled_end = addMinutesToIso(scheduled_start, 150); // 2.5 hours later
 
-      if (!externalOrderId) throw new Error('External order ID is required');
-      if (!date) throw new Error('Date is required');
-      if (!timeStart) throw new Error('Start time is required');
-      if (!difficulty) throw new Error('Installation difficulty is required');
+      if (!externalOrderId)
+        throw new Error(t('createInstallationPage.validation.externalOrderIdRequired'));
+      if (!date) throw new Error(t('createInstallationPage.validation.dateRequired'));
+      if (!timeStart) throw new Error(t('createInstallationPage.validation.startTimeRequired'));
+      if (!difficulty)
+        throw new Error(t('createInstallationPage.validation.difficultyRequired'));
 
       // Build enriched notes (zone + difficulty + original notes)
       const meta: string[] = [];
       if (zone) {
         const label = ZONES.find((z) => z.value === zone)?.label ?? zone;
+        // NOTE: keep "Zone:" English for reports parser compatibility
         meta.push(`Zone: ${label}`);
       }
       if (difficulty) {
         const label =
-          DIFFICULTIES.find((d) => d.value === difficulty)?.label ??
-          difficulty;
+          DIFFICULTIES.find((d) => d.value === difficulty)?.label ?? difficulty;
+        // NOTE: keep "Difficulty:" + English label for reports parser compatibility
         meta.push(`Difficulty: ${label}`);
       }
 
@@ -193,14 +198,14 @@ export default function CreateInstallationPage() {
         queryClient.invalidateQueries({ queryKey: ['calendar', 'installations'] }),
       ]);
 
-      toast.success('Installation created');
+      toast.success(t('createInstallationPage.toasts.created'));
       navigate('/app/calendar');
     },
     onError: (err: any) => {
       const msg =
         err?.response?.data?.message ||
         err?.message ||
-        'Failed to create installation';
+        t('createInstallationPage.toasts.createFailed');
       toast.error(msg);
     },
   });
@@ -217,9 +222,11 @@ export default function CreateInstallationPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Create Installation</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('createInstallationPage.header.title')}
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Schedule a new installation for an order
+          {t('createInstallationPage.header.subtitle')}
         </p>
       </div>
 
@@ -229,9 +236,11 @@ export default function CreateInstallationPage() {
           {/* Store selector (for admins) */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Store</h3>
+              <h3 className="card-title">
+                {t('createInstallationPage.store.title')}
+              </h3>
               <p className="card-description">
-                Select the store where this installation belongs
+                {t('createInstallationPage.store.subtitle')}
               </p>
             </div>
             <div className="card-content space-y-2">
@@ -243,10 +252,10 @@ export default function CreateInstallationPage() {
               >
                 <option value="">
                   {storesQuery.isLoading
-                    ? 'Loading stores…'
+                    ? t('createInstallationPage.store.loading')
                     : myStoreId
-                    ? 'Using your assigned store'
-                    : 'Select store'}
+                    ? t('createInstallationPage.store.usingAssigned')
+                    : t('createInstallationPage.store.selectPlaceholder')}
                 </option>
                 {(storesQuery.data ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
@@ -256,7 +265,7 @@ export default function CreateInstallationPage() {
               </select>
               {storesQuery.isError && (
                 <p className="text-xs text-red-600">
-                  Failed to load stores. You may not be able to create installations.
+                  {t('createInstallationPage.store.loadError')}
                 </p>
               )}
             </div>
@@ -265,21 +274,22 @@ export default function CreateInstallationPage() {
           {/* External Order ID (manual input only) */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Order</h3>
+              <h3 className="card-title">
+                {t('createInstallationPage.order.title')}
+              </h3>
               <p className="card-description">
-                Type the external order ID exactly as it appears in the store system
-                (no lookup, manual entry).
+                {t('createInstallationPage.order.subtitle')}
               </p>
             </div>
             <div className="card-content space-y-3">
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-gray-700">
-                  External Order ID
+                  {t('createInstallationPage.order.externalIdLabel')}
                 </span>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Örn: 1234, 2025-0001, POS-ABC-999…"
+                  placeholder={t('createInstallationPage.order.externalIdPlaceholder')}
                   value={externalOrderId}
                   onChange={(e) => setExternalOrderId(e.target.value)}
                 />
@@ -290,14 +300,15 @@ export default function CreateInstallationPage() {
           {/* Schedule */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Schedule</h3>
-              <p className="card-description">Pick date and time</p>
+              <h3 className="card-title">
+                {t('createInstallationPage.schedule.title')}
+              </h3>
             </div>
             <div className="card-content grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="flex flex-col gap-1">
                 <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <CalendarIcon className="h-4 w-4 text-gray-500" />
-                  Date
+                  {t('createInstallationPage.schedule.dateLabel')}
                 </span>
                 <input
                   type="date"
@@ -310,7 +321,7 @@ export default function CreateInstallationPage() {
               <label className="flex flex-col gap-1">
                 <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Clock className="h-4 w-4 text-gray-500" />
-                  Start time
+                  {t('createInstallationPage.schedule.timeLabel')}
                 </span>
                 <input
                   type="time"
@@ -325,8 +336,12 @@ export default function CreateInstallationPage() {
           {/* Zone */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Zone</h3>
-              <p className="card-description">Select the TRNC zone</p>
+              <h3 className="card-title">
+                {t('createInstallationPage.zone.title')}
+              </h3>
+              <p className="card-description">
+                {t('createInstallationPage.zone.subtitle')}
+              </p>
             </div>
             <div className="card-content">
               <select
@@ -334,7 +349,9 @@ export default function CreateInstallationPage() {
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
               >
-                <option value="">Select zone</option>
+                <option value="">
+                  {t('createInstallationPage.zone.selectPlaceholder')}
+                </option>
                 {ZONES.map((z) => (
                   <option key={z.value} value={z.value}>
                     {z.label}
@@ -347,13 +364,23 @@ export default function CreateInstallationPage() {
           {/* Installation Difficulty */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Installation Difficulty</h3>
-              <p className="card-description">Select one option</p>
+              <h3 className="card-title">
+                {t('createInstallationPage.difficulty.title')}
+              </h3>
+              <p className="card-description">
+                {t('createInstallationPage.difficulty.subtitle')}
+              </p>
             </div>
             <div className="card-content space-y-3">
               <div className="flex flex-wrap gap-2">
                 {DIFFICULTIES.map((d) => {
                   const selected = difficulty === d.value;
+                  const labelKey =
+                    d.value === 'easy'
+                      ? 'createInstallationPage.difficulty.options.easy'
+                      : d.value === 'intermediate'
+                      ? 'createInstallationPage.difficulty.options.intermediate'
+                      : 'createInstallationPage.difficulty.options.hard';
                   return (
                     <button
                       key={d.value}
@@ -367,7 +394,7 @@ export default function CreateInstallationPage() {
                       )}
                       aria-pressed={selected}
                     >
-                      {d.label}
+                      {t(labelKey)}
                     </button>
                   );
                 })}
@@ -376,18 +403,18 @@ export default function CreateInstallationPage() {
               <div className="mt-1">
                 {difficulty ? (
                   <p className="text-sm text-gray-700">
-                    Selected:{' '}
+                    {t('createInstallationPage.difficulty.selected')}{' '}
                     <span className="font-medium">
-                      {
-                        DIFFICULTIES.find(
-                          (x) => x.value === difficulty
-                        )?.label
-                      }
+                      {difficulty === 'easy'
+                        ? t('createInstallationPage.difficulty.options.easy')
+                        : difficulty === 'intermediate'
+                        ? t('createInstallationPage.difficulty.options.intermediate')
+                        : t('createInstallationPage.difficulty.options.hard')}
                     </span>
                   </p>
                 ) : (
                   <p className="text-sm text-gray-500">
-                    No difficulty selected.
+                    {t('createInstallationPage.difficulty.noneSelected')}
                   </p>
                 )}
               </div>
@@ -397,16 +424,18 @@ export default function CreateInstallationPage() {
           {/* Notes */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Notes</h3>
+              <h3 className="card-title">
+                {t('createInstallationPage.notes.title')}
+              </h3>
               <p className="card-description">
-                Special instructions for the crew
+                {t('createInstallationPage.notes.subtitle')}
               </p>
             </div>
             <div className="card-content">
               <textarea
                 className="textarea w-full"
                 rows={4}
-                placeholder="e.g., call customer before arrival, fragile items, building access notes…"
+                placeholder={t('createInstallationPage.notes.placeholder')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -419,16 +448,22 @@ export default function CreateInstallationPage() {
           {/* Crew */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Assign Crew</h3>
-              <p className="card-description">Select up to 3 crew members</p>
+              <h3 className="card-title">
+                {t('createInstallationPage.crew.title')}
+              </h3>
+              <p className="card-description">
+                {t('createInstallationPage.crew.subtitle')}
+              </p>
             </div>
             <div className="card-content space-y-3">
               {crewQuery.isLoading && (
-                <p className="text-sm text-gray-500">Loading crew…</p>
+                <p className="text-sm text-gray-500">
+                  {t('createInstallationPage.crew.loading')}
+                </p>
               )}
               {crewQuery.isError && (
                 <p className="text-sm text-red-600">
-                  Failed to load crew.
+                  {t('createInstallationPage.crew.loadError')}
                 </p>
               )}
 
@@ -449,7 +484,7 @@ export default function CreateInstallationPage() {
                         atLimit && 'cursor-not-allowed opacity-50'
                       )}
                       disabled={atLimit}
-                      title={atLimit ? 'Maximum 3 members' : undefined}
+                      title={atLimit ? t('createInstallationPage.crew.maxTooltip') : undefined}
                     >
                       {c.name ?? c.email ?? c.id}
                     </button>
@@ -460,7 +495,7 @@ export default function CreateInstallationPage() {
               <div className="mt-2">
                 {crewIds.length === 0 ? (
                   <p className="text-sm text-gray-500">
-                    No crew selected yet.
+                    {t('createInstallationPage.crew.noneSelected')}
                   </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
@@ -476,10 +511,10 @@ export default function CreateInstallationPage() {
                             type="button"
                             onClick={() => toggleCrew(c.id)}
                             className="text-gray-500 hover:text-gray-700"
-                            aria-label={`Remove ${
-                              c.name ?? c.email ?? c.id
-                            }`}
-                            title="Remove"
+                            aria-label={t('createInstallationPage.crew.removeAria', {
+                              name: c.name ?? c.email ?? c.id,
+                            })}
+                            title={t('createInstallationPage.crew.removeTitle')}
                           >
                             ✕
                           </button>
@@ -494,8 +529,12 @@ export default function CreateInstallationPage() {
           {/* Actions */}
           <section className="card">
             <div className="card-header">
-              <h3 className="card-title">Actions</h3>
-              <p className="card-description">Save and schedule</p>
+              <h3 className="card-title">
+                {t('createInstallationPage.actions.title')}
+              </h3>
+              <p className="card-description">
+                {t('createInstallationPage.actions.subtitle')}
+              </p>
             </div>
             <div className="card-content">
               <button
@@ -510,13 +549,12 @@ export default function CreateInstallationPage() {
                   )}
                 />
                 {createMutation.isPending
-                  ? 'Scheduling…'
-                  : 'Create Installation'}
+                  ? t('createInstallationPage.actions.scheduling')
+                  : t('createInstallationPage.actions.submit')}
               </button>
               {!canSubmit && (
                 <p className="mt-2 text-xs text-gray-500">
-                  Select store, enter external order ID, date, time and difficulty
-                  to enable.
+                  {t('createInstallationPage.actions.hint')}
                 </p>
               )}
             </div>

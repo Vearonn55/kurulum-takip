@@ -97,10 +97,22 @@ function toLocalHM(iso?: string) {
   return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// NEW: display helpers DD/MM and DD/MM/YYYY
+function fmtDDMM(d: Date) {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}`;
+}
+function fmtDDMMYYYY(d: Date) {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear()}`;
+}
+
 /* =============== Week layout constants =============== */
-const DAY_START = 8;      // 08:00
-const DAY_END = 20;       // 20:00 (exclusive)
-const HOUR_HEIGHT = 56;   // px per hour
+const DAY_START = 8; // 08:00
+const DAY_END = 20; // 20:00 (exclusive)
+const HOUR_HEIGHT = 56; // px per hour
 const HOURS = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i);
 const COLUMN_HEIGHT = (DAY_END - DAY_START) * HOUR_HEIGHT;
 
@@ -108,21 +120,29 @@ const COLUMN_HEIGHT = (DAY_END - DAY_START) * HOUR_HEIGHT;
 function statusClasses(s: Installation['status']) {
   switch (s) {
     case 'completed':
-      return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+
+    // accepted / pending / scheduled → BLUE
     case 'accepted':
     case 'pending':
     case 'scheduled':
-      return 'bg-amber-100 text-amber-800 border-amber-200';
+      return 'border-blue-200 bg-gray-50 text-gray-700';
+
     case 'failed':
-    case 'canceled':   // backend spelling
-    case 'cancelled':  // just in case
-      return 'bg-red-100 text-red-800 border-red-200';
+    case 'canceled': // backend spelling
+    case 'cancelled': // just in case
+      return 'border-rose-200 bg-rose-50 text-rose-700';
+
+    // in progress → AMBER
     case 'in_progress':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+
+    // staged → BLUE as well
     case 'staged':
-      return 'bg-violet-100 text-violet-800 border-violet-200';
+      return 'border-blue-200 bg-blue-50 text-blue-700';
+
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
+      return 'border-gray-200 bg-gray-50 text-gray-700';
   }
 }
 
@@ -229,7 +249,7 @@ export default function CalendarPage() {
 
   /* ---- Weekly prep ---- */
   const weekDays = useMemo(() => eachDayOfWeek(cursor), [cursor]);
-  const weekLabel = `${fmtYYYYMMDD(weekStart)} – ${fmtYYYYMMDD(weekEnd)}`;
+  const weekLabel = `${fmtDDMMYYYY(weekStart)} – ${fmtDDMMYYYY(weekEnd)}`;
 
   const byDayWeek = useMemo(() => {
     const m = new Map<string, Installation[]>();
@@ -280,7 +300,7 @@ export default function CalendarPage() {
             </h1>
             <p className="mt-1 text-sm text-gray-500 flex items-center gap-2">
               {mode === 'month'
-                ? `${fmtYYYYMMDD(monthStart)} – ${fmtYYYYMMDD(monthEnd)}`
+                ? `${fmtDDMMYYYY(monthStart)} – ${fmtDDMMYYYY(monthEnd)}`
                 : weekLabel}
               {storeFilter && (
                 <span className="inline-flex items-center gap-1 text-gray-600">
@@ -326,10 +346,7 @@ export default function CalendarPage() {
             disabled={query.isFetching}
           >
             <RefreshCw
-              className={cn(
-                'h-4 w-4',
-                query.isFetching && 'animate-spin'
-              )}
+              className={cn('h-4 w-4', query.isFetching && 'animate-spin')}
             />
             {t('calendarPage.refresh')}
           </button>
@@ -354,19 +371,19 @@ export default function CalendarPage() {
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-emerald-100 border-emerald-200" />
+          <span className="inline-block h-3 w-3 rounded border bg-emerald-50 border-emerald-200" />
           {t('calendarPage.legend.completed')}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-amber-100 border-amber-200" />
+          <span className="inline-block h-3 w-3 rounded border bg-gray-50 border-gray-200" />
           {t('calendarPage.legend.acceptedPendingScheduled')}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-red-100 border-red-200" />
+          <span className="inline-block h-3 w-3 rounded border bg-rose-50 border-rose-200" />
           {t('calendarPage.legend.failedCanceled')}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-blue-100 border-blue-200" />
+          <span className="inline-block h-3 w-3 rounded border bg-amber-50 border-amber-200" />
           {t('calendarPage.legend.inProgress')}
         </span>
       </div>
@@ -401,15 +418,15 @@ export default function CalendarPage() {
                     <span
                       className={cn(
                         'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium',
-                        isToday
-                          ? 'bg-primary-600 text-white'
-                          : 'text-gray-700'
+                        isToday ? 'bg-primary-600 text-white' : 'text-gray-700'
                       )}
                       title={key}
                     >
                       {d.getDate()}
                     </span>
-                    <span className="text-[10px] text-gray-400">{key}</span>
+                    <span className="text-[10px] text-gray-400">
+                      {fmtDDMMYYYY(d)}
+                    </span>
                   </div>
 
                   <div className="space-y-1">

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../lib/utils';
 import {
@@ -74,14 +75,17 @@ function ymdFromIso(iso: string) {
 function fmt(dtIso: string | null) {
   if (!dtIso) return '—';
   const d = new Date(dtIso);
-  return d.toLocaleString([], {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+
+  return `${day}/${month}/${year}, ${hours}:${minutes}`;
 }
+
 
 function isoToLocalInput(value?: string | null): string {
   if (!value) return '';
@@ -146,6 +150,7 @@ type EditState = {
 export default function InstallationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation('common');
 
   // Force-open date picker (Chrome / Edge / Safari)
   const handleDateClick = (e: React.MouseEvent<HTMLInputElement>) => {
