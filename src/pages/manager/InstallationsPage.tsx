@@ -14,17 +14,21 @@ import {
   XCircle,
   AlertTriangle,
   Wrench,
+  Edit3,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 import { cn } from '../../lib/utils';
 import {
   listInstallations,
   type Installation,
   type InstallStatus,
+  updateInstallationSchedule,
+  updateInstallationStatus,
 } from '../../api/installations';
 import { listStores, type Store } from '../../api/stores';
-import { useTranslation } from 'react-i18next';
+import type { UUID } from '../../api/http';
 
 /* -------------------------------- Types -------------------------------- */
 // UI status (we map backend → UI)
@@ -52,6 +56,10 @@ type Row = {
 };
 
 /* ----------------------------- Helpers ---------------------------- */
+const isTr =
+  typeof navigator !== 'undefined' &&
+  navigator.language.toLowerCase().startsWith('tr');
+
 function ymd(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -73,6 +81,21 @@ function fmt(dtIso: string | null) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function isoToLocalInput(value?: string | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16); // yyyy-MM-ddTHH:mm
+}
+
+function localInputToIso(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 function mapBackendStatusToUi(status: InstallStatus | string): InstallationStatus {
@@ -110,12 +133,20 @@ function makeRow(inst: Installation, store?: Store): Row {
   };
 }
 
+/* ----------------------------- Edit state ---------------------------- */
+type EditState = {
+  id: UUID;
+  status: InstallStatus;
+  scheduled_start: string; // datetime-local
+  scheduled_end: string;
+  notes: string;
+};
+
 /* --------------------------------- Page -------------------------------- */
 export default function InstallationsPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation('common');
+  const queryClient = useQueryClient();
 
-  // Filters
   // Force-open date picker (Chrome / Edge / Safari)
   const handleDateClick = (e: React.MouseEvent<HTMLInputElement>) => {
     const input = e.currentTarget as HTMLInputElement;
@@ -124,6 +155,7 @@ export default function InstallationsPage() {
     }
   };
 
+  // Filters
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<InstallationStatus | 'all'>('all');
   const [zone, setZone] = useState<Zone | 'all'>('all');
@@ -135,6 +167,10 @@ export default function InstallationsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
   const pageSize = 6;
+
+  // Edit modal
+  const [editState, setEditState] = useState<EditState | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Fetch installations (we use a reasonable limit and filter locally by date/search)
   const installationsQuery = useQuery({
@@ -266,6 +302,56 @@ export default function InstallationsPage() {
 
   const goDetail = (id: string) => navigate(`/app/installations/${id}`);
   const goCreate = () => navigate('/app/installations/new');
+
+  /* --------------------------- Edit helpers --------------------------- */
+  const openEdit = (id: string) => {
+    const insts: Installation[] = installationsQuery.data?.data ?? [];
+    const inst = insts.find((i) => i.id === id);
+    if (!inst) return;
+
+    setEditState({
+      id: inst.id as UUID,
+      status: inst.status,
+      scheduled_start: isoToLocalInput(inst.scheduled_start ?? null),
+      scheduled_end: isoToLocalInput(inst.scheduled_end ?? null),
+      notes: inst.notes ?? '',
+    });
+  };
+
+  const closeEdit = () => {
+    if (saving) return;
+    setEditState(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editState) return;
+    setSaving(true);
+    try {
+      const schedulePayload = {
+        scheduled_start: localInputToIso(editState.scheduled_start),
+        scheduled_end: localInputToIso(editState.scheduled_end),
+        notes: editState.notes.trim() || null,
+      };
+
+      await updateInstallationSchedule(editState.id, schedulePayload);
+      await updateInstallationStatus(editState.id, {
+        status: editState.status,
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['installations'] });
+
+      toast.success(isTr ? 'Kurulum güncellendi' : 'Installation updated');
+      setEditState(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        err?.message ||
+          (isTr ? 'Kurulum güncellenemedi' : 'Failed to update installation')
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -524,10 +610,8 @@ export default function InstallationsPage() {
                 dir={sortDir}
                 onClick={() => toggleSort('status')}
               />
-              <th className="w-28 px-3 py-2 text-left">
-                {t('installationsPage.table.crew')}
-              </th>
-              <th className="w-24 px-3 py-2"></th>
+              <th className="w-28 px-3 py-2 text-left">Crew</th>
+              <th className="w-32 px-3 py-2"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -593,12 +677,21 @@ export default function InstallationsPage() {
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => goDetail(r.id)}
-                      className="text-primary-600 hover:text-primary-800"
-                    >
-                      {t('installationsPage.actions.view')}
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => goDetail(r.id)}
+                        className="text-primary-600 hover:text-primary-800 text-xs font-medium"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => openEdit(r.id)}
+                        className="inline-flex items-center gap-1 rounded border border-primary-200 bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700 hover:bg-primary-100"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        {isTr ? 'Düzenle' : 'Edit'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -642,6 +735,138 @@ export default function InstallationsPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit modal */}
+      {editState && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
+            <div className="border-b px-4 py-3">
+              <h2 className="text-sm font-semibold text-gray-900">
+                {isTr ? 'Kurulumu düzenle' : 'Edit installation'}
+              </h2>
+              <p className="mt-1 text-xs text-gray-500">
+                {isTr
+                  ? 'Takvim, durum ve notları güncelleyin.'
+                  : 'Update schedule, status and notes.'}
+              </p>
+            </div>
+
+            <div className="space-y-4 px-4 py-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs text-gray-600">
+                    {isTr ? 'Planlanan başlangıç' : 'Scheduled start'}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input w-full"
+                    value={editState.scheduled_start}
+                    onChange={(e) =>
+                      setEditState((prev) =>
+                        prev
+                          ? { ...prev, scheduled_start: e.target.value }
+                          : prev
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-600">
+                    {isTr ? 'Planlanan bitiş' : 'Scheduled end'}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="input w-full"
+                    value={editState.scheduled_end}
+                    onChange={(e) =>
+                      setEditState((prev) =>
+                        prev
+                          ? { ...prev, scheduled_end: e.target.value }
+                          : prev
+                      )
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-gray-600">
+                  {isTr ? 'Durum' : 'Status'}
+                </label>
+                <select
+                  className="input w-full"
+                  value={editState.status}
+                  onChange={(e) =>
+                    setEditState((prev) =>
+                      prev
+                        ? { ...prev, status: e.target.value as InstallStatus }
+                        : prev
+                    )
+                  }
+                >
+                  <option value="scheduled">
+                    {isTr ? 'Planlandı' : 'Scheduled'}
+                  </option>
+                  <option value="in_progress">
+                    {isTr ? 'Devam ediyor' : 'In progress'}
+                  </option>
+                  <option value="completed">
+                    {isTr ? 'Tamamlandı' : 'Completed'}
+                  </option>
+                  <option value="failed">
+                    {isTr ? 'Başarısız' : 'Failed'}
+                  </option>
+                  <option value="canceled">
+                    {isTr ? 'İptal edildi' : 'Cancelled'}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-gray-600">
+                  {isTr ? 'Notlar' : 'Notes'}
+                </label>
+                <textarea
+                  rows={3}
+                  className="input w-full"
+                  value={editState.notes}
+                  onChange={(e) =>
+                    setEditState((prev) =>
+                      prev ? { ...prev, notes: e.target.value } : prev
+                    )
+                  }
+                  placeholder={
+                    isTr ? 'Ekip için ek notlar…' : 'Additional notes for the crew…'
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+              <button
+                onClick={closeEdit}
+                disabled={saving}
+                className="rounded-md border px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+              >
+                {isTr ? 'İptal' : 'Cancel'}
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving}
+                className="inline-flex items-center rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700 disabled:opacity-70"
+              >
+                {saving
+                  ? isTr
+                    ? 'Kaydediliyor…'
+                    : 'Saving…'
+                  : isTr
+                  ? 'Değişiklikleri kaydet'
+                  : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
