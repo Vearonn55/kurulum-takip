@@ -15,6 +15,7 @@ import {
 import type { Installation } from '../../types';
 import { cn } from '../../lib/utils';
 import { apiGet } from '../../api/http';
+import { useTranslation } from 'react-i18next';
 
 // Minimal types from OpenAPI we actually use here
 type StoreDto = {
@@ -62,6 +63,7 @@ const badge = (s: Installation['status']) =>
 export default function InstallationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   // ---- Main installation (with items + crew embedded) ----
   const query = useQuery({
@@ -120,6 +122,11 @@ export default function InstallationDetailPage() {
 
   const crewUsers = crewUsersQuery.data ?? {};
 
+  const statusLabel =
+    inst?.status != null
+      ? t(`installationsPage.statusLabels.${inst.status}` as any)
+      : '—';
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -133,9 +140,11 @@ export default function InstallationDetailPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Installation #{id}
+              {t('installationDetailPage.header.title')} #{id}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">Detailed overview</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {t('installationDetailPage.header.subtitle')}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -144,7 +153,7 @@ export default function InstallationDetailPage() {
             className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50 inline-flex items-center gap-2"
           >
             <CalendarDays className="h-4 w-4" />
-            Open Calendar
+            {t('installationDetailPage.buttons.openCalendar')}
           </Link>
           {inst?.external_order_id && (
             <Link
@@ -152,7 +161,7 @@ export default function InstallationDetailPage() {
               className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50 inline-flex items-center gap-2"
             >
               <ClipboardList className="h-4 w-4" />
-              View Order
+              {t('installationDetailPage.buttons.viewOrder')}
             </Link>
           )}
         </div>
@@ -165,9 +174,11 @@ export default function InstallationDetailPage() {
           <div className="card-header">
             <h3 className="card-title flex items-center gap-2">
               <Info className="h-4 w-4" />
-              Status
+              {t('installationDetailPage.statusCard.title')}
             </h3>
-            <p className="card-description">State & schedule</p>
+            <p className="card-description">
+              {t('installationDetailPage.statusCard.subtitle')}
+            </p>
           </div>
           <div className="card-content space-y-2 text-sm">
             <div>
@@ -177,17 +188,17 @@ export default function InstallationDetailPage() {
                   inst ? badge(inst.status) : 'bg-gray-100 text-gray-800'
                 )}
               >
-                {inst?.status ?? '—'}
+                {inst ? statusLabel : '—'}
               </span>
             </div>
             <div>
-              Store:{' '}
+              {t('installationDetailPage.statusCard.store')}{' '}
               <span className="text-gray-700">
                 {storeQuery.data?.name ?? inst?.store_id ?? '—'}
               </span>
             </div>
             <div>
-              Start:{' '}
+              {t('installationDetailPage.statusCard.start')}{' '}
               <span className="text-gray-700">
                 {inst?.scheduled_start
                   ? new Date(inst.scheduled_start).toLocaleString()
@@ -195,7 +206,7 @@ export default function InstallationDetailPage() {
               </span>
             </div>
             <div>
-              End:{' '}
+              {t('installationDetailPage.statusCard.end')}{' '}
               <span className="text-gray-700">
                 {inst?.scheduled_end
                   ? new Date(inst.scheduled_end).toLocaleString()
@@ -210,22 +221,29 @@ export default function InstallationDetailPage() {
           <div className="card-header">
             <h3 className="card-title flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Crew
+              {t('installationDetailPage.crewCard.title')}
             </h3>
-            <p className="card-description">Assigned team</p>
+            <p className="card-description">
+              {t('installationDetailPage.crewCard.subtitle')}
+            </p>
           </div>
           <div className="card-content">
             {crew.length === 0 ? (
-              <div className="text-sm text-gray-500">No crew assigned.</div>
+              <div className="text-sm text-gray-500">
+                {t('installationDetailPage.crewCard.none')}
+              </div>
             ) : (
               <ul className="space-y-2">
                 {crew.map((c) => {
                   const user = crewUsers[c.crew_user_id];
-                  const statusLabel = c.accepted_at
-                    ? 'Accepted'
+                  const statusKey = c.accepted_at
+                    ? 'accepted'
                     : c.declined_at
-                    ? 'Declined'
-                    : 'Pending';
+                    ? 'declined'
+                    : 'pending';
+                  const statusLabel = t(
+                    `installationDetailPage.crewCard.status.${statusKey}`
+                  );
 
                   return (
                     <li
@@ -234,10 +252,13 @@ export default function InstallationDetailPage() {
                     >
                       <div>
                         <div className="font-medium text-gray-900">
-                          {user?.name ?? 'Crew Member'}
+                          {user?.name ??
+                            t('installationDetailPage.crewCard.memberFallback')}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {c.role || 'Crew'} · {statusLabel}
+                          {c.role ||
+                            t('installationDetailPage.crewCard.roleFallback')}{' '}
+                          · {statusLabel}
                         </div>
                       </div>
                       <div className="text-xs text-gray-400">
@@ -256,16 +277,20 @@ export default function InstallationDetailPage() {
           <div className="card-header">
             <h3 className="card-title flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Notes
+              {t('installationDetailPage.notesCard.title')}
             </h3>
-            <p className="card-description">Special instructions</p>
+            <p className="card-description">
+              {t('installationDetailPage.notesCard.subtitle')}
+            </p>
           </div>
           <div className="card-content">
             <div className="rounded-md border bg-white p-3 text-sm text-gray-800 min-h-[64px]">
               {inst?.notes?.trim() ? (
                 inst.notes
               ) : (
-                <span className="text-gray-400">No notes.</span>
+                <span className="text-gray-400">
+                  {t('installationDetailPage.notesCard.none')}
+                </span>
               )}
             </div>
           </div>
@@ -277,10 +302,10 @@ export default function InstallationDetailPage() {
         <div className="card-header">
           <h3 className="card-title flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Items
+            {t('installationDetailPage.itemsCard.title')}
           </h3>
           <p className="card-description">
-            Order items scoped to this installation
+            {t('installationDetailPage.itemsCard.subtitle')}
           </p>
         </div>
         <div className="card-content overflow-x-auto">
@@ -288,13 +313,13 @@ export default function InstallationDetailPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Product
+                  {t('installationDetailPage.itemsCard.table.product')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Room
+                  {t('installationDetailPage.itemsCard.table.room')}
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Instructions
+                  {t('installationDetailPage.itemsCard.table.instructions')}
                 </th>
               </tr>
             </thead>
@@ -318,7 +343,7 @@ export default function InstallationDetailPage() {
                     colSpan={3}
                     className="px-4 py-6 text-center text-sm text-gray-500"
                   >
-                    No installation items.
+                    {t('installationDetailPage.itemsCard.none')}
                   </td>
                 </tr>
               )}
@@ -327,12 +352,12 @@ export default function InstallationDetailPage() {
 
           {query.isLoading && (
             <div className="px-4 py-6 text-sm text-gray-500">
-              Loading installation…
+              {t('installationDetailPage.loading')}
             </div>
           )}
           {query.isError && (
             <div className="px-4 py-6 text-sm text-red-600">
-              Failed to load installation.
+              {t('installationDetailPage.loadError')}
             </div>
           )}
         </div>

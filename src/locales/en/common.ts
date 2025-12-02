@@ -8,7 +8,7 @@ const enCommon = {
     installations: 'Installations',
     calendar: 'Calendar',
     reports: 'Reports',
-    usersAndRoles: 'Users & Roles',
+    usersAndRoles: 'Users',
     integrations: 'Integrations',
     audit: 'Audit',
 
@@ -83,7 +83,7 @@ adminDashboard: {
 
   usersPage: {
     title: 'Users',
-    subtitle: 'Manage access and roles',
+    subtitle: 'Manage user access',
 
     refresh: 'Refresh',
     newUserButton: 'New User',
@@ -271,6 +271,225 @@ calendarPage: {
 
   timeColumn: 'Time',
 },
+
+installationsPage: {
+  title: 'Installations',
+  subtitle: 'Schedule status and progress for upcoming jobs.',
+  createButton: 'Create installation',
+
+  filters: {
+    searchLabel: 'Search',
+    searchPlaceholder:
+      'Installation ID, external order ID, store, address…',
+    statusLabel: 'Status',
+    status: {
+      all: 'All',
+      pending: 'Pending',
+      staged: 'Staged',
+      in_progress: 'In progress',
+      completed: 'Completed',
+      failed: 'Failed',
+      cancelled: 'Cancelled',
+    },
+    zoneLabel: 'Zone (city)',
+    allZones: 'All zones',
+    from: 'From',
+    to: 'To',
+  },
+
+  chips: {
+    all: 'All',
+    pending: 'Pending',
+    staged: 'Staged',
+    in_progress: 'In progress',
+    completed: 'Completed',
+    failed: 'Failed',
+    cancelled: 'Cancelled',
+  },
+
+  table: {
+    start: 'Start',
+    installation: 'Installation',
+    store: 'Store',
+    zone: 'Zone',
+    status: 'Status',
+    crew: 'Crew',
+    idPrefix: 'ID:',
+  },
+
+  statusLabels: {
+    pending: 'Pending',
+    staged: 'Staged',
+    in_progress: 'In progress',
+    completed: 'Completed',
+    failed: 'Failed',
+    cancelled: 'Cancelled',
+  },
+
+  crew: {
+    assigned: 'assigned',
+  },
+
+  actions: {
+    view: 'View',
+  },
+
+  loading: 'Loading installations…',
+  loadError: 'Failed to load installations.',
+  noResults: 'No installations match the filters.',
+
+  pagination: {
+    showing: 'Showing',
+    of: 'of',
+    prev: 'Prev',
+    next: 'Next',
+    page: 'Page',
+  },
+
+  sort: 'Sort',
+},
+
+ordersPage: {
+  title: "Orders",
+  subtitle: "Read-only list imported from external system.",
+
+  filters: {
+    searchLabel: "Search",
+    searchPlaceholder: "Order ID, customer, store…",
+
+    statusLabel: "Status",
+    status: {
+      all: "All",
+      pending: "Pending",
+      confirmed: "Confirmed",
+      cancelled: "Cancelled",
+    },
+
+    storeLabel: "Store",
+    storeAll: "All stores",
+
+    from: "From",
+    to: "To",
+  },
+
+  table: {
+    placed: "Placed",
+    order: "Order",
+    customer: "Customer",
+    store: "Store",
+    items: "Items",
+    status: "Status",
+  },
+
+  status: {
+    pending: "Pending",
+    confirmed: "Confirmed",
+    cancelled: "Cancelled",
+  },
+
+  loading: "Loading orders…",
+  noResults: "No orders match the filters.",
+
+  actions: {
+    view: "View",
+  },
+
+  pagination: {
+    showing: "Showing",
+    of: "of",
+    prev: "Prev",
+    next: "Next",
+    page: "Page",
+  },
+},
+
+installationDetailPage: {
+  header: {
+    title: 'Installation',
+    subtitle: 'Detailed overview',
+  },
+
+  buttons: {
+    openCalendar: 'Open Calendar',
+    viewOrder: 'View Order',
+  },
+
+  statusCard: {
+    title: 'Status',
+    subtitle: 'State & schedule',
+    store: 'Store:',
+    start: 'Start:',
+    end: 'End:',
+  },
+
+  crewCard: {
+    title: 'Crew',
+    subtitle: 'Assigned team',
+    none: 'No crew assigned.',
+    status: {
+      accepted: 'Accepted',
+      declined: 'Declined',
+      pending: 'Pending',
+    },
+    memberFallback: 'Crew Member',
+    roleFallback: 'Crew',
+  },
+
+  notesCard: {
+    title: 'Notes',
+    subtitle: 'Special instructions',
+    none: 'No notes.',
+  },
+
+  itemsCard: {
+    title: 'Items',
+    subtitle: 'Order items scoped to this installation',
+    table: {
+      product: 'Product',
+      room: 'Room',
+      instructions: 'Instructions',
+    },
+    none: 'No installation items.',
+  },
+
+  loading: 'Loading installation…',
+  loadError: 'Failed to load installation.',
+},
+
+profilePage: {
+  header: {
+    title: 'Your Profile',
+    subtitle: 'View your account details and role permissions in InstallOps.',
+  },
+
+  error: {
+    title: "Couldn't load your profile",
+  },
+
+  accountCard: {
+    title: 'Account details',
+    fields: {
+      userId: 'User ID',
+      role: 'Role',
+      roleId: 'Role ID',
+      email: 'Email',
+    },
+  },
+
+  permissionsCard: {
+    title: 'Permissions',
+    noPermissions: 'No explicit permissions were returned for this role.',
+  },
+
+  roleLabels: {
+    admin: 'Administrator',
+    storeManager: 'Store Manager',
+    crew: 'Installation Crew',
+  },
+},
+
+
+
 
 
 };

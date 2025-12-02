@@ -1,4 +1,3 @@
-
 // src/pages/manager/OrdersPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,10 +17,12 @@ import { useAuthStore } from "../../stores/auth-simple";
 // real API
 import { listOrders, type ListOrdersParams, type Order } from "../../api/orders";
 import { listStores, type Store as StoreType } from "../../api/stores";
+import { useTranslation } from "react-i18next";
 
 export default function OrdersPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { t } = useTranslation("common");
 
   // 🔹 Local UI state
   const [q, setQ] = useState("");
@@ -153,9 +154,11 @@ export default function OrdersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Orders</h1>
+        <h1 className="text-2xl font-bold">
+          {t("ordersPage.title")}
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Read-only list imported from external system.
+          {t("ordersPage.subtitle")}
         </p>
       </div>
 
@@ -163,12 +166,14 @@ export default function OrdersPage() {
       <div className="grid grid-cols-1 gap-3 rounded-xl border bg-white p-3 shadow-sm md:grid-cols-6">
         {/* Search */}
         <div className="md:col-span-2">
-          <label className="text-xs text-gray-600 mb-1 block">Search</label>
+          <label className="text-xs text-gray-600 mb-1 block">
+            {t("ordersPage.filters.searchLabel")}
+          </label>
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
             <input
               className="input w-full pl-8"
-              placeholder="Order ID, customer, store…"
+              placeholder={t("ordersPage.filters.searchPlaceholder")}
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -180,39 +185,47 @@ export default function OrdersPage() {
 
         {/* Status */}
         <FilterSelect
-          label="Status"
+          label={t("ordersPage.filters.statusLabel")}
           icon={Filter}
           value={status}
-          onChange={(v) => {
+          onChange={(v: string) => {
             setStatus(v as any);
             setPage(1);
           }}
           options={[
-            { value: "all", label: "All" },
-            { value: "pending", label: "Pending" },
-            { value: "confirmed", label: "Confirmed" },
-            { value: "cancelled", label: "Cancelled" },
+            { value: "all", label: t("ordersPage.filters.status.all") },
+            { value: "pending", label: t("ordersPage.filters.status.pending") },
+            { value: "confirmed", label: t("ordersPage.filters.status.confirmed") },
+            { value: "cancelled", label: t("ordersPage.filters.status.cancelled") },
           ]}
         />
 
         {/* Store */}
         <FilterSelect
-          label="Store"
+          label={t("ordersPage.filters.storeLabel")}
           icon={Store}
           value={store}
-          onChange={(v) => {
+          onChange={(v: string) => {
             setStore(v);
             setPage(1);
           }}
           options={[
-            { value: "all", label: "All stores" },
+            { value: "all", label: t("ordersPage.filters.storeAll") },
             ...storeOptions.map((s) => ({ value: s.id, label: s.label })),
           ]}
         />
 
         {/* Dates */}
-        <DateFilter label="From" value={from} onChange={setFrom} />
-        <DateFilter label="To" value={to} onChange={setTo} />
+        <DateFilter
+          label={t("ordersPage.filters.from")}
+          value={from}
+          onChange={setFrom}
+        />
+        <DateFilter
+          label={t("ordersPage.filters.to")}
+          value={to}
+          onChange={setTo}
+        />
       </div>
 
       {/* Table */}
@@ -220,12 +233,42 @@ export default function OrdersPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-xs text-gray-600">
             <tr>
-              <Th label="Placed" active={sortBy === "placed_at"} dir={sortDir} onClick={() => toggleSort("placed_at")} />
-              <Th label="Order" active={sortBy === "id"} dir={sortDir} onClick={() => toggleSort("id")} />
-              <Th label="Customer" active={sortBy === "customer"} dir={sortDir} onClick={() => toggleSort("customer")} />
-              <Th label="Store" active={sortBy === "store"} dir={sortDir} onClick={() => toggleSort("store")} />
-              <Th label="Items" active={sortBy === "items_count"} dir={sortDir} onClick={() => toggleSort("items_count")} />
-              <Th label="Status" active={sortBy === "status"} dir={sortDir} onClick={() => toggleSort("status")} />
+              <Th
+                label={t("ordersPage.table.placed")}
+                active={sortBy === "placed_at"}
+                dir={sortDir}
+                onClick={() => toggleSort("placed_at")}
+              />
+              <Th
+                label={t("ordersPage.table.order")}
+                active={sortBy === "id"}
+                dir={sortDir}
+                onClick={() => toggleSort("id")}
+              />
+              <Th
+                label={t("ordersPage.table.customer")}
+                active={sortBy === "customer"}
+                dir={sortDir}
+                onClick={() => toggleSort("customer")}
+              />
+              <Th
+                label={t("ordersPage.table.store")}
+                active={sortBy === "store"}
+                dir={sortDir}
+                onClick={() => toggleSort("store")}
+              />
+              <Th
+                label={t("ordersPage.table.items")}
+                active={sortBy === "items_count"}
+                dir={sortDir}
+                onClick={() => toggleSort("items_count")}
+              />
+              <Th
+                label={t("ordersPage.table.status")}
+                active={sortBy === "status"}
+                dir={sortDir}
+                onClick={() => toggleSort("status")}
+              />
               <th className="w-24 px-3 py-2"></th>
             </tr>
           </thead>
@@ -234,13 +277,13 @@ export default function OrdersPage() {
             {loading ? (
               <tr>
                 <td colSpan={7} className="p-6 text-center text-gray-500">
-                  Loading orders…
+                  {t("ordersPage.loading")}
                 </td>
               </tr>
             ) : paged.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-6 text-center text-gray-500">
-                  No orders match the filters.
+                  {t("ordersPage.noResults")}
                 </td>
               </tr>
             ) : (
@@ -283,8 +326,11 @@ export default function OrdersPage() {
                   </td>
 
                   <td className="px-3 py-2 text-right">
-                    <button className="text-primary-600 hover:text-primary-800" onClick={() => openDetail(o.id)}>
-                      View
+                    <button
+                      className="text-primary-600 hover:text-primary-800"
+                      onClick={() => openDetail(o.id)}
+                    >
+                      {t("ordersPage.actions.view")}
                     </button>
                   </td>
                 </tr>
@@ -296,25 +342,32 @@ export default function OrdersPage() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t p-3 text-sm">
           <div className="text-gray-600">
-            Showing <b>{paged.length}</b> of <b>{filtered.length}</b>
+            {t("ordersPage.pagination.showing")} <b>{paged.length}</b>{" "}
+            {t("ordersPage.pagination.of")} <b>{filtered.length}</b>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className={cn("rounded-md border px-3 py-1.5", page === 1 && "opacity-50")}
+              className={cn(
+                "rounded-md border px-3 py-1.5",
+                page === 1 && "opacity-50"
+              )}
             >
-              Prev
+              {t("ordersPage.pagination.prev")}
             </button>
             <div>
-              Page <b>{page}</b> / {totalPages}
+              {t("ordersPage.pagination.page")} <b>{page}</b> / {totalPages}
             </div>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className={cn("rounded-md border px-3 py-1.5", page === totalPages && "opacity-50")}
+              className={cn(
+                "rounded-md border px-3 py-1.5",
+                page === totalPages && "opacity-50"
+              )}
             >
-              Next
+              {t("ordersPage.pagination.next")}
             </button>
           </div>
         </div>
@@ -334,14 +387,28 @@ function statusRank(s: "pending" | "confirmed" | "cancelled") {
 }
 
 function StatusPill({ status }: { status: "pending" | "confirmed" | "cancelled" }) {
+  const { t } = useTranslation("common");
+
   const styles: Record<string, string> = {
     pending: "border-amber-200 bg-amber-50 text-amber-700",
     confirmed: "border-emerald-200 bg-emerald-50 text-emerald-700",
     cancelled: "border-rose-200 bg-rose-50 text-rose-700",
   };
+
+  const labelMap: Record<"pending" | "confirmed" | "cancelled", string> = {
+    pending: t("ordersPage.status.pending"),
+    confirmed: t("ordersPage.status.confirmed"),
+    cancelled: t("ordersPage.status.cancelled"),
+  };
+
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]", styles[status])}>
-      {status[0].toUpperCase() + status.slice(1)}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]",
+        styles[status]
+      )}
+    >
+      {labelMap[status]}
     </span>
   );
 }
@@ -374,7 +441,12 @@ function DateFilter({ label, value, onChange }: any) {
       <label className="text-xs text-gray-600 mb-1 block">{label}</label>
       <div className="relative">
         <CalendarIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-        <input type="date" className="input w-full pl-8" value={value} onChange={(e) => onChange(e.target.value)} />
+        <input
+          type="date"
+          className="input w-full pl-8"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
       </div>
     </div>
   );
@@ -383,9 +455,20 @@ function DateFilter({ label, value, onChange }: any) {
 function Th({ label, onClick, active, dir }: any) {
   return (
     <th className="px-3 py-2 text-left font-semibold text-gray-700">
-      <button onClick={onClick} className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 hover:bg-gray-100", active && "text-primary-700")}>
+      <button
+        onClick={onClick}
+        className={cn(
+          "inline-flex items-center gap-1 px-1.5 py-0.5 hover:bg-gray-100",
+          active && "text-primary-700"
+        )}
+      >
         {label}
-        <ArrowUpDown className={cn("h-3.5 w-3.5", active && dir === "asc" && "rotate-180")} />
+        <ArrowUpDown
+          className={cn(
+            "h-3.5 w-3.5",
+            active && dir === "asc" && "rotate-180"
+          )}
+        />
       </button>
     </th>
   );
