@@ -1,5 +1,5 @@
 // src/pages/manager/CreateInstallationPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useQuery,
@@ -33,6 +33,15 @@ const toISODateTime = (date: string, time: string) => {
   return dt.toISOString();
 };
 
+// scheduled_end = scheduled_start + 2.5 hours (150 minutes)
+const addMinutesToIso = (iso: string, minutes: number) => {
+  if (!iso) return '';
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return iso;
+  dt.setMinutes(dt.getMinutes() + minutes);
+  return dt.toISOString();
+};
+
 const ZONES = [
   { value: 'lefkosa', label: 'Lefkoşa' },
   { value: 'gazimagusa', label: 'Gazimağusa' },
@@ -55,7 +64,6 @@ export default function CreateInstallationPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
-  // store from auth (for managers)
   const myStoreId = (user as any)?.store_id as string | undefined;
 
   // ----- form state -----
@@ -77,6 +85,21 @@ export default function CreateInstallationPage() {
     },
     staleTime: 60_000,
   });
+
+  // auto-select first store for admins (no myStoreId) so button can enable
+  useEffect(() => {
+    if (
+      !myStoreId &&
+      !selectedStoreId &&
+      !storesQuery.isLoading &&
+      !storesQuery.isError
+    ) {
+      const first = (storesQuery.data ?? [])[0];
+      if (first) {
+        setSelectedStoreId(first.id);
+      }
+    }
+  }, [myStoreId, selectedStoreId, storesQuery.isLoading, storesQuery.isError, storesQuery.data]);
 
   // ----- data: crew list -----
   const crewQuery = useQuery({
@@ -111,6 +134,7 @@ export default function CreateInstallationPage() {
       }
 
       const scheduled_start = toISODateTime(date, timeStart);
+      const scheduled_end = addMinutesToIso(scheduled_start, 150); // 2.5 hours later
 
       if (!externalOrderId) throw new Error('External order ID is required');
       if (!date) throw new Error('Date is required');
@@ -134,10 +158,12 @@ export default function CreateInstallationPage() {
       const finalNotes =
         (metaPrefix + (notes || '')).trim() || undefined;
 
+      // external_order_id is free text, user types it by hand
       const payload: InstallationCreate = {
         external_order_id: externalOrderId,
         store_id: storeId,
         scheduled_start,
+        scheduled_end,
         notes: finalNotes ?? null,
       };
 
@@ -184,6 +210,7 @@ export default function CreateInstallationPage() {
     !!date &&
     !!timeStart &&
     (!!selectedStoreId || !!myStoreId) &&
+    !!difficulty &&
     !createMutation.isPending;
 
   return (
@@ -235,12 +262,13 @@ export default function CreateInstallationPage() {
             </div>
           </section>
 
-          {/* External Order ID */}
+          {/* External Order ID (manual input only) */}
           <section className="card">
             <div className="card-header">
               <h3 className="card-title">Order</h3>
               <p className="card-description">
-                Enter the external order ID from the store system
+                Type the external order ID exactly as it appears in the store system
+                (no lookup, manual entry).
               </p>
             </div>
             <div className="card-content space-y-3">
@@ -251,7 +279,7 @@ export default function CreateInstallationPage() {
                 <input
                   type="text"
                   className="input"
-                  placeholder="e.g. 1234, 2025-0001, POS-ABC-999…"
+                  placeholder="Örn: 1234, 2025-0001, POS-ABC-999…"
                   value={externalOrderId}
                   onChange={(e) => setExternalOrderId(e.target.value)}
                 />
@@ -487,7 +515,7 @@ export default function CreateInstallationPage() {
               </button>
               {!canSubmit && (
                 <p className="mt-2 text-xs text-gray-500">
-                  Select store, enter external order ID, date and time
+                  Select store, enter external order ID, date, time and difficulty
                   to enable.
                 </p>
               )}
