@@ -13,6 +13,9 @@ export default function RoleGuard({ children, roles }: RoleGuardProps) {
   if (!user) {
     return <Navigate to="/auth/login" replace />;
   }
+  if (user.role === 'ADMIN') {
+    return <>{children}</>;
+  }
 
   if (!hasAnyRole(roles)) {
     return <Navigate to="/403" replace />;
@@ -20,3 +23,4 @@ export default function RoleGuard({ children, roles }: RoleGuardProps) {
 
   return <>{children}</>;
 }
+
