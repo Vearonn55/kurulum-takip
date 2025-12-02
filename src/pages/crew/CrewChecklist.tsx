@@ -3,7 +3,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
 import { cn } from '../../lib/utils';
+import { isAxiosError } from '../../api/http';
+import {
+  updateInstallationStatus,
+  type InstallStatus,
+} from '../../api/installations';
 
 /* --------------------------- Mock template & helpers --------------------------- */
 type ItemType = 'boolean' | 'text' | 'number' | 'photo';
@@ -117,25 +123,7 @@ export default function CrewChecklist() {
     if (!jobId) return;
     localStorage.removeItem(storageKey(jobId));
     setValues({});
-    toast('Draft cleared', { icon: '🗑️' });
-  }
-
-  function onSubmit() {
-    // Only template "required" are validated; outcome cards are optional
-    if (!allRequiredOk) {
-      toast.error('Please complete all required items');
-      return;
-    }
-    setSubmitting(true);
-    // Simulate latency
-    setTimeout(() => {
-      setSubmitting(false);
-      toast.success('Checklist submitted');
-      // Normally: apiClient.submitChecklist(jobId, toPayload(values));
-      // After submit we could clear draft:
-      if (jobId) localStorage.removeItem(storageKey(jobId));
-      navigate(`/crew/jobs/${jobId}`);
-    }, 900);
+    toast('Draft cleared');
   }
 
   // New outcome states
@@ -147,6 +135,64 @@ export default function CrewChecklist() {
   const paymentNotes = (values['payment_notes'] as string | undefined) ?? '';
   const googleRecoGiven = values['google_reco_given'] as boolean | undefined;
 
+  // Map UI outcome → backend InstallStatus
+  function mapInstallStatusForApi(
+    status: 'successful' | 'failed'
+  ): InstallStatus {
+    return status === 'successful' ? 'completed' : 'failed';
+  }
+
+  async function onSubmit() {
+    // Only template "required" are validated; outcome cards are optional
+    if (!allRequiredOk) {
+      toast.error('Please complete all required items');
+      return;
+    }
+    if (!jobId) {
+      toast.error('Missing job ID');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // For now the only backend integration from this page:
+      // - Installation result → /installations/{id}/status
+      if (installStatus === 'successful' || installStatus === 'failed') {
+        const apiStatus = mapInstallStatusForApi(installStatus);
+        await updateInstallationStatus(jobId, { status: apiStatus });
+      }
+
+      // NOTE: These are still local-only (NOT sent to backend):
+      // - arrived_on_time (boolean)
+      // - customer_notes (text)
+      // - handover_docs
+      // - payment_notes
+      // - failure_reason
+      // - google_reco_given
+      // To persist them, we need real ChecklistItem records (UUIDs) and an
+      // installation→template link, otherwise item_id will not match backend.
+
+      toast.success('Checklist submitted');
+
+      // Clear local draft after successful submit
+      localStorage.removeItem(storageKey(jobId));
+
+      navigate(`/crew/jobs/${jobId}`);
+    } catch (err) {
+      if (isAxiosError(err)) {
+        const msg =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          'Failed to submit checklist';
+        toast.error(msg);
+      } else {
+        toast.error('Failed to submit checklist');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="mx-auto h-full w-full max-w-screen-sm">
       {/* Header */}
@@ -156,12 +202,13 @@ export default function CrewChecklist() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-gray-900">Installation Checklist</div>
+            <div className="truncate text-sm font-semibold text-gray-900">
+              Installation Checklist
+            </div>
             <div className="text-[11px] text-gray-500">
               {template.name} • v{template.version}
             </div>
           </div>
-          {/* Required counter removed previously */}
         </div>
       </header>
 
@@ -176,11 +223,14 @@ export default function CrewChecklist() {
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-900">
                     {item.label}{' '}
-                    {item.required && <span className="text-xs font-normal text-rose-600">*</span>}
+                    {item.required && (
+                      <span className="text-xs font-normal text-rose-600">*</span>
+                    )}
                   </div>
-                  {item.hint && <div className="mt-0.5 text-xs text-gray-500">{item.hint}</div>}
+                  {item.hint && (
+                    <div className="mt-0.5 text-xs text-gray-500">{item.hint}</div>
+                  )}
                 </div>
-                {/* Status chip removed */}
               </div>
 
               <div className="mt-3">
@@ -204,7 +254,6 @@ export default function CrewChecklist() {
                       />
                       No
                     </label>
-                    {/* Clear removed on boolean cards */}
                   </div>
                 )}
 
@@ -276,7 +325,7 @@ export default function CrewChecklist() {
         {/* ---- Revealed when Successful ---- */}
         {installStatus === 'successful' && (
           <>
-            {/* Handover docs checkbox (no status chip, no Clear) */}
+            {/* Handover docs checkbox (local-only for now) */}
             <section className="rounded-xl border bg-white p-3 shadow-sm">
               <div className="text-sm font-medium text-gray-900">
                 Insurance document and User instructions given
@@ -294,7 +343,7 @@ export default function CrewChecklist() {
               </div>
             </section>
 
-            {/* About customer payment (compact notebox, with Clear) */}
+            {/* About customer payment (local-only for now) */}
             <section className="rounded-xl border bg-white p-3 shadow-sm">
               <div className="text-sm font-medium text-gray-900">About customer payment</div>
               <div className="mt-2 space-y-2">
@@ -315,10 +364,12 @@ export default function CrewChecklist() {
               </div>
             </section>
 
-            {/* Google recommendation given + mock QR generator button (no Clear) */}
+            {/* Google recommendation given (explicitly left as local-only, as requested) */}
             <section className="rounded-xl border bg-white p-3 shadow-sm">
               <div className="min-w-0">
-                <div className="text-sm font-medium text-gray-900">Google recommendation given</div>
+                <div className="text-sm font-medium text-gray-900">
+                  Google recommendation given
+                </div>
                 <div className="mt-0.5 text-xs text-gray-500">
                   Ask customer to scan and leave a quick Google review.
                 </div>
@@ -346,7 +397,7 @@ export default function CrewChecklist() {
           </>
         )}
 
-        {/* ---- Revealed when Failed (notebox, with Clear) ---- */}
+        {/* ---- Revealed when Failed (local-only failure notes) ---- */}
         {installStatus === 'failed' && (
           <section className="rounded-xl border bg-white p-3 shadow-sm">
             <div className="text-sm font-medium text-gray-900">Failure reason</div>
@@ -388,14 +439,19 @@ export default function CrewChecklist() {
             )}
             onClick={onSubmit}
           >
-            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            {submitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+            )}
             Submit
           </button>
         </div>
 
         {/* Helper row (optional to keep) */}
         <div className="mx-auto mt-2 w-full max-w-screen-sm text-center text-[11px] text-gray-500">
-          Required complete: <span className="font-medium text-gray-800">{requiredCount}</span> /{' '}
+          Required complete:{' '}
+          <span className="font-medium text-gray-800">{requiredCount}</span> /{' '}
           {template.items.filter((i) => i.required).length}
         </div>
       </footer>
@@ -436,14 +492,17 @@ function sanitizeValues(
         out[it.id] = typeof v === 'boolean' ? v : undefined;
         break;
       case 'number':
-        out[it.id] = typeof v === 'number' && !Number.isNaN(v) ? v : undefined;
+        out[it.id] =
+          typeof v === 'number' && !Number.isNaN(v) ? v : undefined;
         break;
       case 'text':
         out[it.id] = typeof v === 'string' ? v : undefined;
         break;
       case 'photo':
         out[it.id] = Array.isArray(v)
-          ? (v as PhotoValue[]).filter((p) => p && typeof (p as PhotoValue).url === 'string')
+          ? (v as PhotoValue[]).filter(
+              (p) => p && typeof (p as PhotoValue).url === 'string'
+            )
           : [];
         break;
     }
@@ -456,5 +515,5 @@ function sanitizeValues(
     }
   }
 
-  return out;
+  return out;w
 }
