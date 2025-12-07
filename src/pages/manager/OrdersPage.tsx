@@ -25,11 +25,18 @@ export default function OrdersPage() {
   const { t } = useTranslation("common");
 
   // 🔹 Local UI state
+  // Default date range: last 1 month
+  const todayISO = ymd();
+  const oneMonthAgoDate = new Date();
+  oneMonthAgoDate.setMonth(oneMonthAgoDate.getMonth() - 1);
+  const oneMonthAgoISO = ymd(oneMonthAgoDate);
+
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
   const [store, setStore] = useState<string>("all");
-  const [from, setFrom] = useState<string>(ymd());
-  const [to, setTo] = useState<string>(ymd());
+  const [from, setFrom] = useState<string>(oneMonthAgoISO);
+  const [to, setTo] = useState<string>(todayISO);
+
 
   const [sortBy, setSortBy] = useState<"placed_at" | "id" | "customer" | "store" | "items_count" | "status">("placed_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
