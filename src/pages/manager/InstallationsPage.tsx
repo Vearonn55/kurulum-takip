@@ -46,6 +46,7 @@ type Zone = string;
 
 type Row = {
   id: string;
+  installCode: string;   // <-- ADD THIS
   status: InstallationStatus;
   start: string | null;
   end: string | null;
@@ -55,6 +56,7 @@ type Row = {
   addressLine?: string;
   crewCount: number;
 };
+
 
 /* ----------------------------- Helpers ---------------------------- */
 const isTr =
@@ -125,6 +127,7 @@ function makeRow(inst: Installation, store?: Store): Row {
 
   return {
     id: inst.id,
+    installCode: inst.install_code,   // <-- ADD THIS
     status: uiStatus,
     start: inst.scheduled_start ?? null,
     end: inst.scheduled_end ?? null,
@@ -132,10 +135,10 @@ function makeRow(inst: Installation, store?: Store): Row {
     storeName: store?.name ?? inst.store_id,
     city: addr?.city,
     addressLine: addr?.line1,
-    // if backend later embeds crew array, we’ll pick it up here
     crewCount: Array.isArray(inst.crew) ? inst.crew.length : 0,
   };
 }
+
 
 /* ----------------------------- Edit state ---------------------------- */
 type EditState = {
@@ -663,7 +666,7 @@ export default function InstallationsPage() {
                       {r.externalOrderId || r.id}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {t('installationsPage.table.idPrefix')} {r.id}
+                      {t('installationsPage.table.idPrefix')} {r.installCode}
                     </div>
                   </td>
                   <td className="px-3 py-2">
