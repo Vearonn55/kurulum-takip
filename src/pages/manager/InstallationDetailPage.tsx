@@ -10,12 +10,17 @@ import {
   Users,
   Info,
   FileText,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 import type { Installation } from '../../types';
 import { cn } from '../../lib/utils';
 import { apiGet } from '../../api/http';
 import { useTranslation } from 'react-i18next';
+import {
+  listInstallationMedia,
+  type MediaAsset,
+} from '../../api/media';
 
 // Minimal types from OpenAPI we actually use here
 type StoreDto = {
@@ -73,11 +78,9 @@ export default function InstallationDetailPage() {
       if (!id) {
         throw new Error('Missing installation id');
       }
-      // Use REST helper that returns the object directly
       const installation = await apiGet<InstallationWithRelations>(
         `/installations/${id}`
       );
-      // IMPORTANT: always return something non-undefined
       return installation;
     },
   });
@@ -112,7 +115,7 @@ export default function InstallationDetailPage() {
           const user = await apiGet<UserDto>(`/users/${uid}`);
           map[uid] = user;
         } catch {
-          // If a user fetch fails, just skip; we’ll fall back to showing the raw ID
+          // skip failed lookups; fall back to raw ID
         }
       }
 
@@ -121,6 +124,23 @@ export default function InstallationDetailPage() {
   });
 
   const crewUsers = crewUsersQuery.data ?? {};
+
+  // ---- Installation media (photos) ----
+  const mediaQuery = useQuery({
+    queryKey: ['installationMedia', id],
+    enabled: !!id,
+    queryFn: async () => {
+      if (!id) throw new Error('Missing installation id');
+      const list = await listInstallationMedia(id, { limit: 50, offset: 0 });
+      return list;
+    },
+  });
+
+  const photos: MediaAsset[] = useMemo(
+    () =>
+      (mediaQuery.data?.data ?? []).filter((m) => m.type === 'photo'),
+    [mediaQuery.data]
+  );
 
   const statusLabel =
     inst?.status != null
@@ -358,6 +378,56 @@ export default function InstallationDetailPage() {
           {query.isError && (
             <div className="px-4 py-6 text-sm text-red-600">
               {t('installationDetailPage.loadError')}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Media / Photos */}
+      <div className="card">
+        <div className="card-header">
+          <h3 className="card-title flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" />
+            Photos
+          </h3>
+          <p className="card-description">
+            Photos captured by the crew for this installation.
+          </p>
+        </div>
+        <div className="card-content">
+          {mediaQuery.isLoading && (
+            <div className="text-sm text-gray-500">Loading photos…</div>
+          )}
+
+          {mediaQuery.isError && (
+            <div className="text-sm text-red-600">
+              Could not load photos for this installation.
+            </div>
+          )}
+
+          {!mediaQuery.isLoading && !mediaQuery.isError && photos.length === 0 && (
+            <div className="text-sm text-gray-500">
+              No photos have been uploaded for this installation yet.
+            </div>
+          )}
+
+          {photos.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+              {photos.map((m) => (
+                <a
+                  key={m.id}
+                  href={m.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group block overflow-hidden rounded-md border bg-gray-50"
+                >
+                  <img
+                    src={m.url}
+                    alt="Installation photo"
+                    className="h-32 w-full object-cover transition-transform group-hover:scale-105"
+                  />
+                </a>
+              ))}
             </div>
           )}
         </div>
