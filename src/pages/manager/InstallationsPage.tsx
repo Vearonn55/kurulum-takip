@@ -160,12 +160,23 @@ export default function InstallationsPage() {
     }
   };
 
-  // Filters
-  const [q, setQ] = useState('');
-  const [status, setStatus] = useState<InstallationStatus | 'all'>('all');
-  const [zone, setZone] = useState<Zone | 'all'>('all');
-  const [from, setFrom] = useState<string>(ymd());
-  const [to, setTo] = useState<string>(ymd());
+      // compute today and 1 month ago
+      const today = new Date();
+      const todayISO = ymd(today);
+
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      const oneMonthAgoISO = ymd(oneMonthAgo);
+
+      // Filters
+      const [q, setQ] = useState('');
+      const [status, setStatus] = useState<InstallationStatus | 'all'>('all');
+      const [zone, setZone] = useState<Zone | 'all'>('all');
+
+      // Set default range: from = 1 month ago, to = today
+      const [from, setFrom] = useState<string>(oneMonthAgoISO);
+      const [to, setTo] = useState<string>(todayISO);
+
 
   // Sort & pagination
   const [sortBy, setSortBy] = useState<'start' | 'customer' | 'zone' | 'status'>('start');

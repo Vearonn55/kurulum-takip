@@ -11,6 +11,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   AlertTriangle,
+  Wrench,  
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -238,7 +239,30 @@ function buildActivityIcon(log: AuditLog): {
   icon: JSX.Element;
   iconBgClass: string;
 } {
-  // very lightweight heuristic based on action / entity
+  // specific mapping for installation-related actions
+  if (log.entity === 'installation') {
+    switch (log.action) {
+      case 'installation.create':
+        return {
+          icon: <Package className="h-4 w-4 text-blue-600" />,
+          iconBgClass: 'bg-blue-100',
+        };
+      case 'installation.update':
+        return {
+          icon: <Wrench className="h-4 w-4 text-indigo-600" />,
+          iconBgClass: 'bg-indigo-100',
+        };
+      case 'installation.update_status': // shows as "installation.update status" in UI
+        return {
+          icon: <Wrench className="h-4 w-4 text-amber-600" />,
+          iconBgClass: 'bg-amber-100',
+        };
+      default:
+        break;
+    }
+  }
+
+  // very lightweight heuristic based on action / entity (keep your existing code)
   const a = log.action.toLowerCase();
   if (a.includes('completed') || a.includes('success')) {
     return {
@@ -269,6 +293,7 @@ function buildActivityIcon(log: AuditLog): {
     iconBgClass: 'bg-blue-100',
   };
 }
+
 
 /* --------------------------- Component --------------------------- */
 
