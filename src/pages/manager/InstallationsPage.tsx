@@ -39,7 +39,8 @@ type InstallationStatus =
   | 'in_progress'
   | 'completed'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  | 'after_sale_service';
 
 // "Zone" here is effectively city name coming from store.address.city
 type Zone = string;
@@ -86,7 +87,6 @@ function fmt(dtIso: string | null) {
   return `${day}/${month}/${year}, ${hours}:${minutes}`;
 }
 
-
 function isoToLocalInput(value?: string | null): string {
   if (!value) return '';
   const d = new Date(value);
@@ -112,6 +112,8 @@ function mapBackendStatusToUi(status: InstallStatus | string): InstallationStatu
       return 'failed';
     case 'canceled':
       return 'cancelled';
+    case 'after_sale_service':
+      return 'after_sale_service';
     // backend has "scheduled"; UI shows that as "Pending"
     case 'scheduled':
     default:
@@ -160,23 +162,22 @@ export default function InstallationsPage() {
     }
   };
 
-      // compute today and 1 month ago
-      const today = new Date();
-      const todayISO = ymd(today);
+  // compute today and 1 month ago
+  const today = new Date();
+  const todayISO = ymd(today);
 
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      const oneMonthAgoISO = ymd(oneMonthAgo);
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const oneMonthAgoISO = ymd(oneMonthAgo);
 
-      // Filters
-      const [q, setQ] = useState('');
-      const [status, setStatus] = useState<InstallationStatus | 'all'>('all');
-      const [zone, setZone] = useState<Zone | 'all'>('all');
+  // Filters
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState<InstallationStatus | 'all'>('all');
+  const [zone, setZone] = useState<Zone | 'all'>('all');
 
-      // Set default range: from = 1 month ago, to = today
-      const [from, setFrom] = useState<string>(oneMonthAgoISO);
-      const [to, setTo] = useState<string>(todayISO);
-
+  // Set default range: from = 1 month ago, to = today
+  const [from, setFrom] = useState<string>(oneMonthAgoISO);
+  const [to, setTo] = useState<string>(todayISO);
 
   // Sort & pagination
   const [sortBy, setSortBy] = useState<'start' | 'customer' | 'zone' | 'status'>('start');
@@ -301,6 +302,7 @@ export default function InstallationsPage() {
       completed: allRows.filter((r) => r.status === 'completed').length,
       failed: allRows.filter((r) => r.status === 'failed').length,
       cancelled: allRows.filter((r) => r.status === 'cancelled').length,
+      after_sale_service: allRows.filter((r) => r.status === 'after_sale_service').length,
     };
     return c;
   }, [allRows]);
@@ -444,6 +446,9 @@ export default function InstallationsPage() {
               </option>
               <option value="cancelled">
                 {t('installationsPage.filters.status.cancelled')}
+              </option>
+              <option value="after_sale_service">
+                {t('installationsPage.filters.status.after_sale_service')}
               </option>
             </select>
           </div>
@@ -589,6 +594,17 @@ export default function InstallationsPage() {
           active={status === 'cancelled'}
           onClick={() => {
             setStatus('cancelled');
+            setPage(1);
+          }}
+        />
+        <QuickChip
+          label={t('installationsPage.chips.after_sale_service')}
+          value={counts.after_sale_service}
+          tone="sky"
+          icon={<Wrench className="h-3.5 w-3.5" />}
+          active={status === 'after_sale_service'}
+          onClick={() => {
+            setStatus('after_sale_service');
             setPage(1);
           }}
         />
@@ -835,6 +851,9 @@ export default function InstallationsPage() {
                   <option value="canceled">
                     {isTr ? 'İptal edildi' : 'Cancelled'}
                   </option>
+                  <option value="after_sale_service">
+                    {isTr ? 'Satış sonrası servis' : 'After-sale service'}
+                  </option>
                 </select>
               </div>
 
@@ -893,6 +912,7 @@ function statusRank(s: InstallationStatus) {
     'pending',
     'staged',
     'in_progress',
+    'after_sale_service',
     'completed',
     'failed',
     'cancelled',
@@ -940,6 +960,11 @@ function StatusPill({
       tone: 'border-zinc-200 bg-zinc-50 text-zinc-700',
       Icon: XCircle,
       label: 'Cancelled',
+    },
+    after_sale_service: {
+      tone: 'border-sky-200 bg-sky-50 text-sky-700',
+      Icon: Wrench,
+      label: 'After-sale service',
     },
   };
   const { tone, Icon, label } = cfg[status];
