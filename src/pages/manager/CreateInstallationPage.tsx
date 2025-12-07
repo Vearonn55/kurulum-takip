@@ -52,13 +52,8 @@ const ZONES = [
   { value: 'lefke', label: 'Lefke' },
 ];
 
-const DIFFICULTIES = [
-  { value: 'easy', label: 'Easy' },
-  { value: 'intermediate', label: 'Intermediate' },
-  { value: 'hard', label: 'Hard' },
-] as const;
-
-type DifficultyValue = (typeof DIFFICULTIES)[number]['value'];
+const DIFFICULTIES = ['easy', 'intermediate', 'hard'] as const;
+type DifficultyValue = (typeof DIFFICULTIES)[number];
 
 export default function CreateInstallationPage() {
   const navigate = useNavigate();
@@ -138,38 +133,26 @@ export default function CreateInstallationPage() {
       const scheduled_start = toISODateTime(date, timeStart);
       const scheduled_end = addMinutesToIso(scheduled_start, 150); // 2.5 hours later
 
-      if (!externalOrderId)
+      if (!externalOrderId) {
         throw new Error(t('createInstallationPage.validation.externalOrderIdRequired'));
-      if (!date) throw new Error(t('createInstallationPage.validation.dateRequired'));
-      if (!timeStart) throw new Error(t('createInstallationPage.validation.startTimeRequired'));
-      if (!difficulty)
+      }
+      if (!date) {
+        throw new Error(t('createInstallationPage.validation.dateRequired'));
+      }
+      if (!timeStart) {
+        throw new Error(t('createInstallationPage.validation.startTimeRequired'));
+      }
+      if (!difficulty) {
         throw new Error(t('createInstallationPage.validation.difficultyRequired'));
-
-      // Build enriched notes (zone + difficulty + original notes)
-      const meta: string[] = [];
-      if (zone) {
-        const label = ZONES.find((z) => z.value === zone)?.label ?? zone;
-        // NOTE: keep "Zone:" English for reports parser compatibility
-        meta.push(`Zone: ${label}`);
-      }
-      if (difficulty) {
-        const label =
-          DIFFICULTIES.find((d) => d.value === difficulty)?.label ?? difficulty;
-        // NOTE: keep "Difficulty:" + English label for reports parser compatibility
-        meta.push(`Difficulty: ${label}`);
       }
 
-      const metaPrefix = meta.length ? `[${meta.join(' | ')}] ` : '';
-      const finalNotes =
-        (metaPrefix + (notes || '')).trim() || undefined;
-
-      // external_order_id is free text, user types it by hand
       const payload: InstallationCreate = {
         external_order_id: externalOrderId,
         store_id: storeId,
         scheduled_start,
         scheduled_end,
-        notes: finalNotes ?? null,
+        notes: notes || null,
+        difficulty: difficulty as DifficultyValue,
       };
 
       // 1) Create the installation
@@ -333,7 +316,7 @@ export default function CreateInstallationPage() {
             </div>
           </section>
 
-          {/* Zone */}
+          {/* Zone (front-end only for now) */}
           <section className="card">
             <div className="card-header">
               <h3 className="card-title">
@@ -373,19 +356,20 @@ export default function CreateInstallationPage() {
             </div>
             <div className="card-content space-y-3">
               <div className="flex flex-wrap gap-2">
-                {DIFFICULTIES.map((d) => {
-                  const selected = difficulty === d.value;
+                {DIFFICULTIES.map((value) => {
+                  const selected = difficulty === value;
                   const labelKey =
-                    d.value === 'easy'
+                    value === 'easy'
                       ? 'createInstallationPage.difficulty.options.easy'
-                      : d.value === 'intermediate'
+                      : value === 'intermediate'
                       ? 'createInstallationPage.difficulty.options.intermediate'
                       : 'createInstallationPage.difficulty.options.hard';
+
                   return (
                     <button
-                      key={d.value}
+                      key={value}
                       type="button"
-                      onClick={() => setDifficulty(d.value)}
+                      onClick={() => setDifficulty(value)}
                       className={cn(
                         'rounded-md border px-3 py-1.5 text-sm transition',
                         selected
@@ -484,7 +468,9 @@ export default function CreateInstallationPage() {
                         atLimit && 'cursor-not-allowed opacity-50'
                       )}
                       disabled={atLimit}
-                      title={atLimit ? t('createInstallationPage.crew.maxTooltip') : undefined}
+                      title={
+                        atLimit ? t('createInstallationPage.crew.maxTooltip') : undefined
+                      }
                     >
                       {c.name ?? c.email ?? c.id}
                     </button>

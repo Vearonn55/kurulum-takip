@@ -8,7 +8,8 @@ export type InstallStatus =
   | 'in_progress'
   | 'completed'
   | 'failed'
-  | 'canceled';
+  | 'canceled'
+  | 'staged';
 
 export type InstallationItem = {
   id: UUID;
@@ -71,10 +72,11 @@ export type InstallationList = {
 
 export type InstallationCreate = {
   external_order_id: string;
-  store_id: UUID;
+  store_id: string;
   scheduled_start?: string | null;
   scheduled_end?: string | null;
   status?: InstallStatus;
+  difficulty?: 'easy' | 'intermediate' | 'hard' | null;
   notes?: string | null;
 };
 
