@@ -63,28 +63,39 @@ export const useAuthStore = create<AuthStore>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
 
-        // Simulate API delay (frontend-only mock; real cookie login is done via /api/auth)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+          // apiLogin() already ran in LoginPage and set the cookie.
+          // Here we just read the current user/session from /auth/me.
+          const me = await getCurrentUser();
 
-        // Mock authentication - accept any email/password for demo
-        const mockUser: User = {
-          id: '1',
-          email: email,
-          firstName: 'Demo',
-          lastName: 'User',
-          role: 'ADMIN' as UserRole,
-          storeId: '1',
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+          const mappedUser: User = {
+            id: me.id,
+            // We don't get name/email from /auth/me, so we use what we know
+            name: '',
+            email,
+            phone: undefined,
+            role: (me.role?.toUpperCase?.() || 'ADMIN') as UserRole,
+            store_id: undefined,
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
 
-        set({
-          user: mockUser,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
+          set({
+            user: mappedUser,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } catch (err: any) {
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: err?.message || 'Login failed',
+          });
+          throw err;
+        }
       },
 
       logout: () => {
@@ -129,30 +140,29 @@ export const useAuthStore = create<AuthStore>()(
 );
 
 // Simple initialization function
-// Now attempts to restore session from backend /auth/me using the sid cookie.
+// Attempts to restore session from backend /auth/me using the sid cookie.
 export const initializeAuth = async () => {
   const state = useAuthStore.getState();
 
   try {
     // This will succeed if sid cookie is valid (user has an active session)
-    const me: any = await getCurrentUser();
+    const me = await getCurrentUser();
 
     // If we already had a user in local storage, keep it.
     // Otherwise, create a minimal user object from /auth/me and cast to User.
     const mappedUser: User =
       state.user ??
-      ({
+      {
         id: me.id,
-        // We don't get email from /auth/me; keep it empty or from existing state
+        name: state.user?.name ?? '',
         email: state.user?.email ?? '',
-        firstName: state.user?.firstName ?? '',
-        lastName: state.user?.lastName ?? '',
+        phone: state.user?.phone,
         role: (me.role?.toUpperCase?.() || 'ADMIN') as UserRole,
-        storeId: state.user?.storeId ?? '',
-        isActive: true,
-        createdAt: state.user?.createdAt ?? new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as User);
+        store_id: state.user?.store_id,
+        status: state.user?.status ?? 'active',
+        created_at: state.user?.created_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
     useAuthStore.setState({
       ...state,
@@ -163,9 +173,8 @@ export const initializeAuth = async () => {
     });
 
     return { user: mappedUser, isAuthenticated: true };
-  } catch (err) {
+  } catch {
     // If /auth/me fails (401 or other), just return whatever we had persisted.
-    // This keeps behavior stable in dev if there's no session yet.
     return { user: state.user, isAuthenticated: state.isAuthenticated };
   }
 };

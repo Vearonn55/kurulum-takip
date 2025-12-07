@@ -285,7 +285,7 @@ installationsPage: {
     status: {
       all: 'Tümü',
       pending: 'Beklemede',
-      staged: 'Hazırlanıyor',
+      staged: 'Hazırlandı',
       in_progress: 'Devam ediyor',
       completed: 'Tamamlandı',
       failed: 'Başarısız',
@@ -300,7 +300,7 @@ installationsPage: {
   chips: {
     all: 'Tümü',
     pending: 'Beklemede',
-    staged: 'Hazırlanıyor',
+    staged: 'Hazırlandı',
     in_progress: 'Devam ediyor',
     completed: 'Tamamlandı',
     failed: 'Başarısız',
@@ -319,7 +319,7 @@ installationsPage: {
 
   statusLabels: {
     pending: 'Beklemede',
-    staged: 'Hazırlanıyor',
+    staged: 'Hazırlandı',
     in_progress: 'Devam ediyor',
     completed: 'Tamamlandı',
     failed: 'Başarısız',
