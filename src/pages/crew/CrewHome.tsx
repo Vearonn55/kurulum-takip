@@ -1,18 +1,26 @@
 // src/pages/crew/CrewHome.tsx
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, MapPin, Clock, ClipboardCheck, User2 } from 'lucide-react';
+
 import { cn } from '../../lib/utils';
+import { useAuthStore } from '../../stores/auth-simple';
+import {
+  listInstallations,
+  type Installation,
+  type InstallStatus,
+  type CrewAssignment,
+} from '../../api/installations';
 
 type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'failed';
 
 type CrewJob = {
-  id: string;        // UUID - used for routing/API
-  code?: string;     // install_code (INST-0000x) - used for display
+  id: string;
   customer: string;
   address: string;
   start: string; // ISO
-  end: string;   // ISO
+  end: string; // ISO
   zone: string;
   status: JobStatus;
 };
@@ -21,6 +29,7 @@ function fmtTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
 function isSameDay(a: Date, b: Date) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -28,6 +37,7 @@ function isSameDay(a: Date, b: Date) {
     a.getDate() === b.getDate()
   );
 }
+
 function startOfWeek(d = new Date()) {
   // Monday first
   const day = d.getDay(); // 0..6 (Sun..Sat)
@@ -37,6 +47,7 @@ function startOfWeek(d = new Date()) {
   res.setHours(0, 0, 0, 0);
   return res;
 }
+
 function endOfWeek(d = new Date()) {
   const s = startOfWeek(d);
   const e = new Date(s);
@@ -44,66 +55,87 @@ function endOfWeek(d = new Date()) {
   e.setHours(23, 59, 59, 999);
   return e;
 }
+
 function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-/**
- * NOTE:
- * id = real installation UUID (matching DB `installations.id`)
- * code = human-friendly install_code (INST-0000x) for display
- */
-const MOCK_JOBS: CrewJob[] = [
-  // Failed example: INST-00003
-  {
-    id: 'c4d33e11-cf17-470d-99c3-390813edac1c',
-    code: 'INST-00003',
-    customer: 'Selin Kaya',
-    address: 'Ece Sk. 12, Famagusta',
-    start: '2025-11-27T07:00:00.000Z',
-    end: '2025-11-27T10:13:00.000Z',
-    zone: 'Famagusta',
-    status: 'failed',
-  },
-  // Completed example: INST-00001
-  {
-    id: 'd2799abb-ad86-4c38-8296-2d9c919d8393',
-    code: 'INST-00001',
-    customer: 'Ali Demir',
-    address: 'Atatürk Cad. 18, Nicosia',
-    start: '2025-11-21T15:14:00.000Z',
-    end: '2025-11-21T15:16:00.000Z',
-    zone: 'Nicosia',
-    status: 'completed',
-  },
-  // Scheduled example: INST-00002
-  {
-    id: '7f12b7f3-5a03-4eeb-8244-db0168624c1b',
-    code: 'INST-00002',
-    customer: 'Mete Aydın',
-    address: 'Zeytinlik Mah., Kyrenia',
-    start: '2025-12-01T07:00:00.000Z',
-    end: '2025-12-01T09:30:00.000Z',
-    zone: 'Kyrenia',
-    status: 'scheduled',
-  },
-  // Scheduled intermediate example: INST-00005
-  {
-    id: '93dcb8b5-6297-4b3a-9f00-208cebf8e375',
-    code: 'INST-00005',
-    customer: 'Ece Yıldız',
-    address: 'Yenişehir Mh., Nicosia',
-    start: '2025-12-09T07:00:00.000Z',
-    end: '2025-12-09T09:30:00.000Z',
-    zone: 'Nicosia',
-    status: 'scheduled',
-  },
-];
+// Map backend InstallStatus → UI JobStatus bucket
+function mapStatusToJobStatus(status: InstallStatus): JobStatus {
+  switch (status) {
+    case 'in_progress':
+      return 'in_progress';
+    case 'completed':
+      return 'completed';
+    case 'failed':
+      return 'failed';
+    // scheduled, staged, canceled, after_sale_service → treat as scheduled/awaiting
+    case 'scheduled':
+    case 'staged':
+    case 'canceled':
+    case 'after_sale_service':
+    default:
+      return 'scheduled';
+  }
+}
+
+// Build address/zone from store + address relations (best-effort)
+function buildAddress(inst: Installation): { customer: string; address: string; zone: string } {
+  const storeName = (inst as any).store?.name ?? 'Store';
+
+  const line1 = (inst as any).store?.address?.line1 as string | undefined;
+  const city = (inst as any).store?.address?.city as string | undefined;
+  const region = (inst as any).store?.address?.region as string | undefined;
+
+  const addressParts = [line1, city, region].filter(Boolean);
+  const address = addressParts.join(', ') || storeName;
+
+  const zone = city || storeName || 'Zone';
+
+  return { customer: storeName, address, zone };
+}
 
 export default function CrewHome() {
   const now = new Date();
   const weekStart = startOfWeek(now);
   const weekEnd = endOfWeek(now);
+
+  const { user } = useAuthStore();
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['crew-installations'],
+    queryFn: () => listInstallations({}), // we filter by crew on the client side
+  });
+
+  const installations: Installation[] = data?.data ?? [];
+
+  // Installations where current user is assigned as crew
+  const crewJobs: CrewJob[] = useMemo(() => {
+    if (!user) return [];
+    const userId = user.id;
+
+    return installations
+      .filter((inst) => {
+        const crew = (inst.crew || []) as CrewAssignment[];
+        return crew.some((c) => c.crew_user_id === userId);
+      })
+      .map((inst) => {
+        const { customer, address, zone } = buildAddress(inst);
+        if (!inst.scheduled_start || !inst.scheduled_end) {
+          return null; // ignore unscheduled for week view
+        }
+        return {
+          id: inst.id, // real installation ID (UUID)
+          customer,
+          address,
+          start: inst.scheduled_start,
+          end: inst.scheduled_end,
+          zone,
+          status: mapStatusToJobStatus(inst.status),
+        } as CrewJob;
+      })
+      .filter(Boolean) as CrewJob[];
+  }, [installations, user]);
 
   // Build Mon..Sun strip
   const weekDays = useMemo(() => {
@@ -115,14 +147,14 @@ export default function CrewHome() {
     });
   }, [weekStart, now]);
 
-  // Week jobs & group by day
+  // Jobs within the current week
   const weekJobs = useMemo(
     () =>
-      MOCK_JOBS.filter((j) => {
+      crewJobs.filter((j) => {
         const s = new Date(j.start);
         return s >= weekStart && s <= weekEnd;
       }),
-    [weekStart, weekEnd]
+    [crewJobs, weekStart, weekEnd]
   );
 
   const jobsByDay = useMemo(() => {
@@ -137,11 +169,7 @@ export default function CrewHome() {
     return map;
   }, [weekDays, weekJobs]);
 
-  const activeJob = useMemo(
-    () => weekJobs.find((j) => j.status === 'in_progress') || null,
-    [weekJobs]
-  );
-
+  // Today’s jobs (from weekly set)
   const todayJobs = useMemo(() => {
     const d0 = new Date(now);
     d0.setHours(0, 0, 0, 0);
@@ -153,12 +181,68 @@ export default function CrewHome() {
     });
   }, [weekJobs, now]);
 
+  // Current Active Job:
+  // 1) in_progress this week (earliest)
+  // 2) else earliest job today
+  // 3) else earliest upcoming job this week
+  // 4) else earliest job in the week
+  const activeJob = useMemo(() => {
+    if (!weekJobs.length) return null;
+
+    const byStart = (a: CrewJob, b: CrewJob) =>
+      new Date(a.start).getTime() - new Date(b.start).getTime();
+
+    const inProgress = weekJobs.filter((j) => j.status === 'in_progress');
+    if (inProgress.length) {
+      return [...inProgress].sort(byStart)[0];
+    }
+
+    if (todayJobs.length) {
+      return [...todayJobs].sort(byStart)[0];
+    }
+
+    const upcoming = weekJobs.filter((j) => new Date(j.start) >= now);
+    if (upcoming.length) {
+      return [...upcoming].sort(byStart)[0];
+    }
+
+    return [...weekJobs].sort(byStart)[0];
+  }, [weekJobs, todayJobs, now]);
+
   const summary = {
     weekTotal: weekJobs.length,
     active: weekJobs.filter((j) => j.status === 'in_progress').length,
     done: weekJobs.filter((j) => j.status === 'completed').length,
     issues: weekJobs.filter((j) => j.status === 'failed').length,
   };
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto w-full max-w-md px-3 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-3">
+        <div className="mb-3">
+          <h1 className="text-lg font-bold text-gray-900">Crew Home</h1>
+          <p className="text-xs text-gray-500">Loading your jobs…</p>
+        </div>
+        <div className="rounded-xl border bg-white p-4 text-sm text-gray-500 shadow-sm">
+          Fetching assigned installations…
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="mx-auto w-full max-w-md px-3 pb-[calc(env(safe-area-inset-bottom)+88px)] pt-3">
+        <div className="mb-3">
+          <h1 className="text-lg font-bold text-gray-900">Crew Home</h1>
+          <p className="text-xs text-gray-500">Your current job and weekly summary</p>
+        </div>
+        <div className="rounded-xl border bg-white p-4 text-sm text-red-600 shadow-sm">
+          Failed to load installations. Please try again later.
+        </div>
+      </div>
+    );
+  }
 
   return (
     // Narrow, centered; safe padding for CrewShell bottom bar
@@ -168,6 +252,15 @@ export default function CrewHome() {
         <h1 className="text-lg font-bold text-gray-900">Crew Home</h1>
         <p className="text-xs text-gray-500">Your current job and weekly summary</p>
       </div>
+
+      {/* Optional summary cards – keep commented if not needed
+      <div className="mb-3 grid grid-cols-4 gap-2">
+        <SummaryCard label="Week" value={summary.weekTotal} />
+        <SummaryCard label="Active" value={summary.active} />
+        <SummaryCard label="Done" value={summary.done} />
+        <SummaryCard label="Issues" value={summary.issues} />
+      </div>
+      */}
 
       {/* Mini Weekly Calendar */}
       <div className="mb-3 rounded-xl border bg-white p-2 shadow-sm">
@@ -237,7 +330,7 @@ export default function CrewHome() {
                 {activeJob.customer}
               </div>
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
-                In progress
+                {activeJob.status === 'in_progress' ? 'In progress' : 'Next job'}
               </span>
             </div>
 
@@ -255,9 +348,7 @@ export default function CrewHome() {
               <div className="line-clamp-2 text-gray-600">{activeJob.address}</div>
               <div className="flex items-center gap-1.5 text-gray-600">
                 <User2 className="h-3.5 w-3.5 text-gray-500" />
-                <span>
-                  Job ID: {activeJob.code ? activeJob.code : activeJob.id}
-                </span>
+                <span>Job ID: {activeJob.id}</span>
               </div>
             </div>
 
@@ -286,36 +377,46 @@ export default function CrewHome() {
         </div>
 
         {todayJobs.filter((j) => j.id !== activeJob?.id).length === 0 ? (
-          <div className="p-5 text-center text-sm text-gray-500">No other jobs today.</div>
+          <div className="p-5 text-center text-sm text-gray-500">
+            No other jobs today.
+          </div>
         ) : (
           <ul className="divide-y">
             {todayJobs
               .filter((j) => j.id !== activeJob?.id)
               .map((j) => (
                 <li key={j.id} className="px-3 py-3">
-                  <Link to={`/crew/jobs/${j.id}`} className="block">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-gray-900">
-                          {j.customer}
-                          <span className="ml-2 text-xs font-normal text-gray-500">
-                            #{j.code ? j.code : j.id}
-                          </span>
-                        </div>
-                        <div className="mt-1 grid grid-cols-1 gap-3 text-sm text-gray-700 sm:grid-cols-2">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            <Clock className="h-4 w-4" />
-                            {fmtTime(j.start)} – {fmtTime(j.end)}
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4" />
-                            {j.zone}
-                          </span>
-                        </div>
+                  <div className="flex items-center justify-between">
+                    <Link to={`/crew/jobs/${j.id}`} className="block min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-gray-900">
+                        {j.customer}
+                        <span className="ml-2 text-xs font-normal text-gray-500">
+                          #{j.id}
+                        </span>
                       </div>
+                      <div className="mt-1 grid grid-cols-1 gap-3 text-sm text-gray-700 sm:grid-cols-2">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <Clock className="h-4 w-4" />
+                          {fmtTime(j.start)} – {fmtTime(j.end)}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="h-4 w-4" />
+                          {j.zone}
+                        </span>
+                      </div>
+                    </Link>
+
+                    <div className="ml-3 flex flex-col items-end gap-1">
                       <StatusPill status={j.status} />
+                      <Link
+                        to={`/crew/jobs/${j.id}/checklist`}
+                        className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700 hover:bg-primary-100"
+                      >
+                        <ClipboardCheck className="mr-1 h-3 w-3" />
+                        Checklist
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 </li>
               ))}
           </ul>
@@ -350,7 +451,7 @@ function StatusPill({ status }: { status: JobStatus }) {
   return (
     <span
       className={cn(
-        'ml-3 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]',
+        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]',
         tone[status]
       )}
     >
