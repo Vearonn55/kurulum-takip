@@ -69,6 +69,7 @@ export default function CrewChecklist() {
   const template = useMemo(() => mockTemplate(), []);
   const [values, setValues] = useState<Values>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submittingAfterSale, setSubmittingAfterSale] = useState(false);
 
   // Load draft from localStorage
   useEffect(() => {
@@ -190,6 +191,40 @@ export default function CrewChecklist() {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // New: mark installation as after-sale service
+  async function markAfterSaleService() {
+    if (!jobId) {
+      toast.error('Missing job ID');
+      return;
+    }
+
+    setSubmittingAfterSale(true);
+    try {
+      await updateInstallationStatus(jobId, {
+        status: 'after_sale_service' as InstallStatus,
+      });
+
+      toast.success('Marked as after-sale service');
+
+      // Optionally clear draft too
+      localStorage.removeItem(storageKey(jobId));
+
+      navigate(`/crew/jobs/${jobId}`);
+    } catch (err) {
+      if (isAxiosError(err)) {
+        const msg =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          'Failed to mark after-sale service';
+        toast.error(msg);
+      } else {
+        toast.error('Failed to mark after-sale service');
+      }
+    } finally {
+      setSubmittingAfterSale(false);
     }
   }
 
@@ -397,7 +432,7 @@ export default function CrewChecklist() {
           </>
         )}
 
-        {/* ---- Revealed when Failed (local-only failure notes) ---- */}
+        {/* ---- Revealed when Failed (local-only failure notes + after-sale button) ---- */}
         {installStatus === 'failed' && (
           <section className="rounded-xl border bg-white p-3 shadow-sm">
             <div className="text-sm font-medium text-gray-900">Failure reason</div>
@@ -417,6 +452,24 @@ export default function CrewChecklist() {
                 </button>
               </div>
             </div>
+
+            {/* After-sale service action */}
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-gray-500">
+                If this job requires a follow-up visit, you can mark it as an after-sale service.
+              </p>
+              <button
+                type="button"
+                onClick={markAfterSaleService}
+                disabled={submittingAfterSale}
+                className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+              >
+                {submittingAfterSale && (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                )}
+                After-sale service
+              </button>
+            </div>
           </section>
         )}
       </main>
@@ -433,7 +486,7 @@ export default function CrewChecklist() {
             Clear All
           </button>
           <button
-            disabled={submitting}
+            disabled={submitting || submittingAfterSale}
             className={cn(
               'inline-flex items-center justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50'
             )}
@@ -515,5 +568,5 @@ function sanitizeValues(
     }
   }
 
-  return out;w
+  return out;
 }

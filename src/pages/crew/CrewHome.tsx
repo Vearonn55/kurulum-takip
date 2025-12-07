@@ -7,7 +7,8 @@ import { cn } from '../../lib/utils';
 type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'failed';
 
 type CrewJob = {
-  id: string;
+  id: string;        // UUID - used for routing/API
+  code?: string;     // install_code (INST-0000x) - used for display
   customer: string;
   address: string;
   start: string; // ISO
@@ -21,7 +22,11 @@ function fmtTime(iso: string) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 function startOfWeek(d = new Date()) {
   // Monday first
@@ -43,67 +48,57 @@ function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-const MOCK_JOBS: CrewJob[] = (() => {
-  const base = new Date();
-  const at = (offsetDay: number, h: number, m = 0) => {
-    const d = new Date(base);
-    d.setDate(d.getDate() + offsetDay);
-    d.setHours(h, m, 0, 0);
-    return d.toISOString();
-  };
-  return [
-    // Active today
-    {
-      id: 'inst-6102',
-      customer: 'Selin Kaya',
-      address: 'Ece Sk. 12, Famagusta',
-      start: at(0, 12, 0),
-      end: at(0, 13, 30),
-      zone: 'Famagusta',
-      status: 'in_progress',
-    },
-    // Completed earlier this week
-    {
-      id: 'inst-6101',
-      customer: 'Ali Demir',
-      address: 'Atatürk Cad. 18, Nicosia',
-      start: at(-1, 9, 0),
-      end: at(-1, 11, 0),
-      zone: 'Nicosia',
-      status: 'completed',
-    },
-    // Scheduled later today
-    {
-      id: 'inst-6103',
-      customer: 'Mete Aydın',
-      address: 'Zeytinlik Mah., Kyrenia',
-      start: at(0, 15, 0),
-      end: at(0, 17, 0),
-      zone: 'Kyrenia',
-      status: 'scheduled',
-    },
-    // Failed earlier this week
-    {
-      id: 'inst-6097',
-      customer: 'Bora Kar',
-      address: 'Şht. Sk. 5, Morphou',
-      start: at(-2, 10, 0),
-      end: at(-2, 12, 0),
-      zone: 'Morphou',
-      status: 'failed',
-    },
-    // Another scheduled later this week
-    {
-      id: 'inst-6104',
-      customer: 'Ece Yıldız',
-      address: 'Yenişehir Mh., Nicosia',
-      start: at(2, 10, 30),
-      end: at(2, 12, 0),
-      zone: 'Nicosia',
-      status: 'scheduled',
-    },
-  ];
-})();
+/**
+ * NOTE:
+ * id = real installation UUID (matching DB `installations.id`)
+ * code = human-friendly install_code (INST-0000x) for display
+ */
+const MOCK_JOBS: CrewJob[] = [
+  // Failed example: INST-00003
+  {
+    id: 'c4d33e11-cf17-470d-99c3-390813edac1c',
+    code: 'INST-00003',
+    customer: 'Selin Kaya',
+    address: 'Ece Sk. 12, Famagusta',
+    start: '2025-11-27T07:00:00.000Z',
+    end: '2025-11-27T10:13:00.000Z',
+    zone: 'Famagusta',
+    status: 'failed',
+  },
+  // Completed example: INST-00001
+  {
+    id: 'd2799abb-ad86-4c38-8296-2d9c919d8393',
+    code: 'INST-00001',
+    customer: 'Ali Demir',
+    address: 'Atatürk Cad. 18, Nicosia',
+    start: '2025-11-21T15:14:00.000Z',
+    end: '2025-11-21T15:16:00.000Z',
+    zone: 'Nicosia',
+    status: 'completed',
+  },
+  // Scheduled example: INST-00002
+  {
+    id: '7f12b7f3-5a03-4eeb-8244-db0168624c1b',
+    code: 'INST-00002',
+    customer: 'Mete Aydın',
+    address: 'Zeytinlik Mah., Kyrenia',
+    start: '2025-12-01T07:00:00.000Z',
+    end: '2025-12-01T09:30:00.000Z',
+    zone: 'Kyrenia',
+    status: 'scheduled',
+  },
+  // Scheduled intermediate example: INST-00005
+  {
+    id: '93dcb8b5-6297-4b3a-9f00-208cebf8e375',
+    code: 'INST-00005',
+    customer: 'Ece Yıldız',
+    address: 'Yenişehir Mh., Nicosia',
+    start: '2025-12-09T07:00:00.000Z',
+    end: '2025-12-09T09:30:00.000Z',
+    zone: 'Nicosia',
+    status: 'scheduled',
+  },
+];
 
 export default function CrewHome() {
   const now = new Date();
@@ -122,10 +117,11 @@ export default function CrewHome() {
 
   // Week jobs & group by day
   const weekJobs = useMemo(
-    () => MOCK_JOBS.filter((j) => {
-      const s = new Date(j.start);
-      return s >= weekStart && s <= weekEnd;
-    }),
+    () =>
+      MOCK_JOBS.filter((j) => {
+        const s = new Date(j.start);
+        return s >= weekStart && s <= weekEnd;
+      }),
     [weekStart, weekEnd]
   );
 
@@ -141,11 +137,16 @@ export default function CrewHome() {
     return map;
   }, [weekDays, weekJobs]);
 
-  const activeJob = useMemo(() => weekJobs.find((j) => j.status === 'in_progress') || null, [weekJobs]);
+  const activeJob = useMemo(
+    () => weekJobs.find((j) => j.status === 'in_progress') || null,
+    [weekJobs]
+  );
 
   const todayJobs = useMemo(() => {
-    const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
-    const d1 = new Date(now); d1.setHours(23, 59, 59, 999);
+    const d0 = new Date(now);
+    d0.setHours(0, 0, 0, 0);
+    const d1 = new Date(now);
+    d1.setHours(23, 59, 59, 999);
     return weekJobs.filter((j) => {
       const s = new Date(j.start);
       return s >= d0 && s <= d1;
@@ -198,13 +199,15 @@ export default function CrewHome() {
               </div>
               {/* colored sticks under each day */}
               <div className="mt-1 flex w-full flex-col items-center gap-0.5">
-                {(jobsByDay[d.key] || []).slice(0, 4).map((j) => (
-                  <div
-                    key={j.id}
-                    title={`${j.customer} • ${fmtTime(j.start)}-${fmtTime(j.end)}`}
-                    className={cn('h-1.5 w-5 rounded-full', statusColor(j.status))}
-                  />
-                ))}
+                {(jobsByDay[d.key] || [])
+                  .slice(0, 4)
+                  .map((j) => (
+                    <div
+                      key={j.id}
+                      title={`${j.customer} • ${fmtTime(j.start)}-${fmtTime(j.end)}`}
+                      className={cn('h-1.5 w-5 rounded-full', statusColor(j.status))}
+                    />
+                  ))}
                 {(jobsByDay[d.key] || []).length > 4 && (
                   <div className="text-[10px] text-gray-500">
                     +{(jobsByDay[d.key] || []).length - 4}
@@ -224,14 +227,15 @@ export default function CrewHome() {
         </div>
       </div>
 
-
       {/* Current Active Job */}
       <section className="mb-4">
         <h2 className="mb-2 text-sm font-semibold text-gray-900">Current Active Job</h2>
         {activeJob ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3 shadow-sm">
             <div className="mb-1 flex items-center justify-between">
-              <div className="text-base font-semibold text-gray-900">{activeJob.customer}</div>
+              <div className="text-base font-semibold text-gray-900">
+                {activeJob.customer}
+              </div>
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
                 In progress
               </span>
@@ -251,7 +255,9 @@ export default function CrewHome() {
               <div className="line-clamp-2 text-gray-600">{activeJob.address}</div>
               <div className="flex items-center gap-1.5 text-gray-600">
                 <User2 className="h-3.5 w-3.5 text-gray-500" />
-                <span>Job ID: {activeJob.id}</span>
+                <span>
+                  Job ID: {activeJob.code ? activeJob.code : activeJob.id}
+                </span>
               </div>
             </div>
 
@@ -292,19 +298,20 @@ export default function CrewHome() {
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-gray-900">
                           {j.customer}
-                          <span className="ml-2 text-xs font-normal text-gray-500">#{j.id}</span>
+                          <span className="ml-2 text-xs font-normal text-gray-500">
+                            #{j.code ? j.code : j.id}
+                          </span>
                         </div>
-                        <div className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                         <span className="flex items-center gap-1.5 font-medium">
-                         <Clock className="h-4 w-4" />
-                         {fmtTime(j.start)} – {fmtTime(j.end)}
-                         </span>
-                        <span className="flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4" />
-                      {j.zone}
-                     </span>
-                    </div>
-
+                        <div className="mt-1 grid grid-cols-1 gap-3 text-sm text-gray-700 sm:grid-cols-2">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <Clock className="h-4 w-4" />
+                            {fmtTime(j.start)} – {fmtTime(j.end)}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="h-4 w-4" />
+                            {j.zone}
+                          </span>
+                        </div>
                       </div>
                       <StatusPill status={j.status} />
                     </div>
@@ -341,7 +348,12 @@ function StatusPill({ status }: { status: JobStatus }) {
       ? 'In progress'
       : status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   return (
-    <span className={cn('ml-3 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]', tone[status])}>
+    <span
+      className={cn(
+        'ml-3 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]',
+        tone[status]
+      )}
+    >
       {label}
     </span>
   );
