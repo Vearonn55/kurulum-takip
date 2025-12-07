@@ -97,7 +97,7 @@ function toLocalHM(iso?: string) {
   return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-// NEW: display helpers DD/MM and DD/MM/YYYY
+// Display helpers DD/MM and DD/MM/YYYY
 function fmtDDMM(d: Date) {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -116,30 +116,31 @@ const HOUR_HEIGHT = 56; // px per hour
 const HOURS = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i);
 const COLUMN_HEIGHT = (DAY_END - DAY_START) * HOUR_HEIGHT;
 
-/* =============== Status color classes =============== */
+/* =============== Status color classes (match InstallationsPage) =============== */
 function statusClasses(s: Installation['status']) {
   switch (s) {
     case 'completed':
       return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 
-    // accepted / pending / scheduled → BLUE
-    case 'accepted':
-    case 'pending':
-    case 'scheduled':
-      return 'border-blue-200 bg-gray-50 text-gray-700';
-
-    case 'failed':
-    case 'canceled': // backend spelling
-    case 'cancelled': // just in case
-      return 'border-rose-200 bg-rose-50 text-rose-700';
-
-    // in progress → AMBER
     case 'in_progress':
       return 'border-amber-200 bg-amber-50 text-amber-700';
 
-    // staged → BLUE as well
+    case 'failed':
+      return 'border-rose-200 bg-rose-50 text-rose-700';
+
+    case 'after_sale_service':
+      return 'border-sky-200 bg-sky-50 text-sky-700';
+
     case 'staged':
       return 'border-blue-200 bg-blue-50 text-blue-700';
+
+    case 'canceled': // backend
+    case 'cancelled': // safety
+      return 'border-zinc-200 bg-zinc-50 text-zinc-700';
+
+    case 'scheduled':
+      // "pending" look
+      return 'border-gray-200 bg-gray-50 text-gray-700';
 
     default:
       return 'border-gray-200 bg-gray-50 text-gray-700';
@@ -170,23 +171,20 @@ export default function CalendarPage() {
       ? (user as any).store_id
       : undefined;
 
-  // Fetch installs for visible range (server filters by store, client filters by date)
+  // Fetch installs (server filters by store; client filters by date)
   const query = useQuery({
     queryKey: ['installations', { mode, store_id: storeFilter }],
     queryFn: async () => {
-      // listInstallations is the axios wrapper for GET /installations
       const res = await listInstallations({
         store_id: storeFilter,
         limit: 200,
         offset: 0,
       });
 
-      // Backend returns { data, limit, offset }
       const apiItems = (res as any).data ?? [];
       const mapped: Installation[] = apiItems.map((i: any) => ({
-        // Map backend → frontend shape; keep existing UI fields
         id: i.id,
-        order_id: i.external_order_id ?? '', // backend: external_order_id
+        order_id: i.external_order_id ?? '', // installation code
         store_id: i.store_id,
         scheduled_start: i.scheduled_start,
         scheduled_end: i.scheduled_end,
@@ -294,11 +292,11 @@ export default function CalendarPage() {
             <ChevronRight className="h-5 w-5" />
           </button>
           <div className="ml-1">
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
               <CalendarIcon className="h-6 w-6 text-gray-700" />
               {mode === 'month' ? monthLabel : t('calendarPage.weekView')}
             </h1>
-            <p className="mt-1 text-sm text-gray-500 flex items-center gap-2">
+            <p className="mt-1 flex items-center gap-2 text-sm text-gray-500">
               {mode === 'month'
                 ? `${fmtDDMMYYYY(monthStart)} – ${fmtDDMMYYYY(monthEnd)}`
                 : weekLabel}
@@ -368,30 +366,48 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Legend */}
+      {/* Legend – match InstallationsPage chips */}
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-emerald-50 border-emerald-200" />
+          <span className="inline-block h-3 w-3 rounded border border-gray-200 bg-gray-50" />
+          {t('calendarPage.legend.pending')}
+        </span>
+
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded border border-blue-200 bg-blue-50" />
+          {t('calendarPage.legend.staged')}
+        </span>
+
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded border border-amber-200 bg-amber-50" />
+          {t('calendarPage.legend.inProgress')}
+        </span>
+
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-block h-3 w-3 rounded border border-emerald-200 bg-emerald-50" />
           {t('calendarPage.legend.completed')}
         </span>
+
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-gray-50 border-gray-200" />
-          {t('calendarPage.legend.acceptedPendingScheduled')}
+          <span className="inline-block h-3 w-3 rounded border border-rose-200 bg-rose-50" />
+          {t('calendarPage.legend.failed')}
         </span>
+
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-rose-50 border-rose-200" />
-          {t('calendarPage.legend.failedCanceled')}
+          <span className="inline-block h-3 w-3 rounded border border-zinc-200 bg-zinc-50" />
+          {t('calendarPage.legend.cancelled')}
         </span>
+
         <span className="inline-flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded border bg-amber-50 border-amber-200" />
-          {t('calendarPage.legend.inProgress')}
+          <span className="inline-block h-3 w-3 rounded border border-sky-200 bg-sky-50" />
+          {t('calendarPage.legend.afterSaleService')}
         </span>
       </div>
 
       {/* ===== Month View ===== */}
       {mode === 'month' ? (
         <div className="overflow-hidden rounded-lg border bg-white">
-          <div className="grid grid-cols-7 border-b bg-gray-50 text-xs font-medium text-gray-500 uppercase">
+          <div className="grid grid-cols-7 border-b bg-gray-50 text-xs font-medium uppercase text-gray-500">
             {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dKey) => (
               <div key={dKey} className="px-3 py-2">
                 {t(`calendarPage.weekdays.${dKey}`)}
@@ -438,9 +454,9 @@ export default function CalendarPage() {
                           'block truncate rounded border px-2 py-1 text-[11px] font-medium hover:opacity-90',
                           statusClasses(ev.status)
                         )}
-                        title={`#${ev.id} • ${ev.order_id}`}
+                        title={ev.order_id || ev.id}
                       >
-                        #{ev.id} • {ev.order_id}
+                        {ev.order_id || ev.id}
                       </Link>
                     ))}
                     {events.length > 3 && (
@@ -494,7 +510,7 @@ export default function CalendarPage() {
                     {d.toLocaleDateString(i18n.language, {
                       weekday: 'short',
                     })}{' '}
-                    <span className="text-gray-500">{d.getDate()}</span>
+                    <span className="text-gray-500">{fmtDDMM(d)}</span>
                   </div>
                 </div>
               );
@@ -518,7 +534,7 @@ export default function CalendarPage() {
               {HOURS.map((h, i) => (
                 <div
                   key={`label-${h}`}
-                  className="absolute -translate-y-2 right-2 text-[11px] text-gray-500"
+                  className="absolute right-2 -translate-y-2 text-[11px] text-gray-500"
                   style={{ top: i * HOUR_HEIGHT }}
                 >
                   {String(h).padStart(2, '0')}:00
@@ -534,7 +550,7 @@ export default function CalendarPage() {
               return (
                 <div
                   key={key}
-                  className="relative border-r last:border-r-0 bg-white"
+                  className="relative border-r bg-white last:border-r-0"
                   style={{ height: COLUMN_HEIGHT }}
                 >
                   {/* Hour lines */}
@@ -551,11 +567,9 @@ export default function CalendarPage() {
                     const s = new Date(ev.scheduled_start || day);
                     const e = new Date(ev.scheduled_end || s);
 
-                    // decimal hours
                     const sh = s.getHours() + s.getMinutes() / 60;
                     const eh = e.getHours() + e.getMinutes() / 60;
 
-                    // clamp to visible range
                     const startClamped = Math.max(
                       DAY_START,
                       Math.min(sh, DAY_END)
@@ -564,10 +578,7 @@ export default function CalendarPage() {
                       DAY_START,
                       Math.min(eh, DAY_END)
                     );
-                    const duration = Math.max(
-                      0.25,
-                      endClamped - startClamped
-                    ); // >= 15 min
+                    const duration = Math.max(0.25, endClamped - startClamped); // >= 15 min
 
                     const top = (startClamped - DAY_START) * HOUR_HEIGHT;
                     const height = Math.max(28, duration * HOUR_HEIGHT);
@@ -577,19 +588,18 @@ export default function CalendarPage() {
                         to={`/app/installations/${ev.id}`}
                         key={ev.id}
                         className={cn(
-                          'absolute left-1 right-1 rounded border px-2 py-1 text-[11px] font-medium shadow-sm hover:opacity-90',
-                          'overflow-hidden transition-opacity',
+                          'absolute left-1 right-1 overflow-hidden rounded border px-2 py-1 text-[11px] font-medium shadow-sm transition-opacity hover:opacity-90',
                           statusClasses(ev.status)
                         )}
                         style={{ top, height }}
-                        title={`#${ev.id} • ${ev.order_id} • ${toLocalHM(
+                        title={`${ev.order_id || ev.id} • ${toLocalHM(
                           ev.scheduled_start
                         )}–${toLocalHM(ev.scheduled_end)}`}
                       >
                         <div className="truncate">
-                          #{ev.id} • {ev.order_id}
+                          {ev.order_id || ev.id}
                         </div>
-                        <div className="opacity-70 text-[10px]">
+                        <div className="text-[10px] opacity-70">
                           {toLocalHM(ev.scheduled_start)}–
                           {toLocalHM(ev.scheduled_end)}
                         </div>
