@@ -9,7 +9,8 @@ export type InstallStatus =
   | 'completed'
   | 'failed'
   | 'canceled'
-  | 'staged';
+  | 'staged'
+  | 'after_sale_service';
 
 export type InstallationItem = {
   id: UUID;
