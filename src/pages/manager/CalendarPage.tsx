@@ -370,37 +370,39 @@ export default function CalendarPage() {
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-gray-200 bg-gray-50" />
-          {t('calendarPage.legend.pending')}
+          {t('calendarPage.legend.pending', { defaultValue: 'Pending' })}
         </span>
 
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-blue-200 bg-blue-50" />
-          {t('calendarPage.legend.staged')}
+          {t('calendarPage.legend.staged', { defaultValue: 'Staged' })}
         </span>
 
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-amber-200 bg-amber-50" />
-          {t('calendarPage.legend.inProgress')}
+          {t('calendarPage.legend.inProgress', { defaultValue: 'In Progress' })}
         </span>
 
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-emerald-200 bg-emerald-50" />
-          {t('calendarPage.legend.completed')}
+          {t('calendarPage.legend.completed', { defaultValue: 'Completed' })}
         </span>
 
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-rose-200 bg-rose-50" />
-          {t('calendarPage.legend.failed')}
+          {t('calendarPage.legend.failed', { defaultValue: 'Failed' })}
         </span>
 
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-zinc-200 bg-zinc-50" />
-          {t('calendarPage.legend.cancelled')}
+          {t('calendarPage.legend.cancelled', { defaultValue: 'Cancelled' })}
         </span>
 
         <span className="inline-flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded border border-sky-200 bg-sky-50" />
-          {t('calendarPage.legend.afterSaleService')}
+          {t('calendarPage.legend.afterSaleService', {
+            defaultValue: 'After Sale Service',
+          })}
         </span>
       </div>
 

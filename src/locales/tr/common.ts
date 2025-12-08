@@ -246,11 +246,15 @@ calendarPage: {
   createInstallation: 'Kurulum Oluştur',
 
   legend: {
-    completed: 'Tamamlandı',
-    acceptedPendingScheduled: 'Kabul / Bekliyor / Planlandı',
-    failedCanceled: 'Başarısız / İptal',
-    inProgress: 'Devam ediyor',
+  pending: "Beklemede",
+  staged: "Hazırlandı",
+  inProgress: "Devam Ediyor",
+  completed: "Tamamlandı",
+  failed: "Başarısız",
+  cancelled: "İptal Edildi",
+  afterSaleService: "Satış Sonrası Hizmet"
   },
+
 
   weekdays: {
     mon: 'Pzt',
@@ -290,6 +294,8 @@ installationsPage: {
       completed: 'Tamamlandı',
       failed: 'Başarısız',
       cancelled: 'İptal edildi',
+      after_sale_service: "Satış Sonrası Hizmet"
+
     },
     zoneLabel: 'Bölge (şehir)',
     allZones: 'Tüm bölgeler',
@@ -305,6 +311,7 @@ installationsPage: {
     completed: 'Tamamlandı',
     failed: 'Başarısız',
     cancelled: 'İptal edildi',
+    after_sale_service: "Satış Sonrası Hizmet"
   },
 
   table: {
@@ -324,6 +331,7 @@ installationsPage: {
     completed: 'Tamamlandı',
     failed: 'Başarısız',
     cancelled: 'İptal edildi',
+    after_sale_service: "Satış Sonrası Hizmet"
   },
 
   crew: {
