@@ -1,11 +1,12 @@
 // src/pages/crew/CrewJobs.tsx
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   Clock,
   MapPin,
   ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
@@ -111,20 +112,56 @@ function mapBackendStatusToJobStatus(status: string): CrewJobStatus {
   }
 }
 
+// DD/MM/YY formatter
+function fmtShortDate(d: Date) {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
 /* --------------------------- Component --------------------------- */
 export default function CrewJobs() {
   const navigate = useNavigate();
 
-  // Build current week (Mon–Sun)
-  const weekStart = useMemo(() => startOfWeek(new Date(), 1), []);
+  // Today (stable)
+  const today = useMemo(() => new Date(), []);
+  const todayKey = useMemo(() => today.toDateString(), [today]);
+
+  // Week offset: 0 = current week, 1 = next week, 2 = week after, etc.
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // Base: start of CURRENT week (Mon)
+  const baseWeekStart = useMemo(() => startOfWeek(today, 1), [today]);
+
+  // Current view's week start (Mon) depending on offset
+  const weekStart = useMemo(
+    () => addDays(baseWeekStart, weekOffset * 7),
+    [baseWeekStart, weekOffset]
+  );
+
+  // Week end (Sun) for display (inclusive 7-day range)
+  const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
+
+  // Build week days (Mon–Sun) for the current view
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart]
   );
 
-  // Default selected day: today
-  const todayKey = new Date().toDateString();
+  // Default selected day: today (for current week)
   const [selectedKey, setSelectedKey] = useState<string>(todayKey);
+
+  // When week changes:
+  // - If we're on current week (offset 0), select today
+  // - Otherwise, select Monday of that week
+  useEffect(() => {
+    if (weekOffset === 0) {
+      setSelectedKey(todayKey);
+    } else {
+      setSelectedKey(weekStart.toDateString());
+    }
+  }, [weekOffset, weekStart, todayKey]);
 
   // UI state (search is wired to filtering, there is no input yet)
   const [q, setQ] = useState('');
@@ -158,14 +195,14 @@ export default function CrewJobs() {
     const insts = installationsQuery.data?.data ?? [];
     const jobs: CrewJob[] = [];
 
-    const weekEnd = addDays(weekStart, 7);
+    const weekEndBound = addDays(weekStart, 7);
 
     for (const inst of insts) {
       const startIso = inst.scheduled_start ?? null;
       if (!startIso) continue;
 
       const startDate = new Date(startIso);
-      if (startDate < weekStart || startDate >= weekEnd) continue;
+      if (startDate < weekStart || startDate >= weekEndBound) continue;
 
       const endIso = inst.scheduled_end ?? startIso;
 
@@ -220,6 +257,10 @@ export default function CrewJobs() {
     return list;
   }, [raw, q]);
 
+  // Handlers for week navigation
+  const goToCurrentWeek = () => setWeekOffset(0);
+  const goToNextWeek = () => setWeekOffset((o) => o + 1);
+
   return (
     <div className="mx-auto w-full max-w-screen-sm">
       {/* Header */}
@@ -227,15 +268,11 @@ export default function CrewJobs() {
         <div className="px-3 py-2">
           <div className="flex items-center justify-between">
             <div className="text-lg font-semibold text-gray-900">Jobs</div>
-            <div className="inline-flex items-center text-xs text-gray-500">
-              <CalendarDays className="mr-1 h-3.5 w-3.5" />
-              Week of {weekStart.toLocaleDateString()}
-            </div>
           </div>
         </div>
 
         {/* Week strip */}
-        <div className="flex flex-wrap justify-center gap-1.5 overflow-x-hidden px-2 pb-2">
+        <div className="flex flex-wrap justify-center gap-1.5 overflow-x-hidden px-2 pb-1">
           {weekDays.map((d) => {
             const isActive = d.toDateString() === selectedKey;
             return (
@@ -263,6 +300,34 @@ export default function CrewJobs() {
               </button>
             );
           })}
+        </div>
+
+        {/* Week range + arrows (centered under weekdays) */}
+        <div className="flex items-center justify-center gap-3 pb-2 px-3">
+          <button
+            type="button"
+            onClick={goToCurrentWeek}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white hover:bg-gray-50 active:scale-95"
+            aria-label="Back to current week"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          <div className="inline-flex items-center gap-1 text-base font-semibold text-gray-600">
+            <CalendarDays className="h-5 w-5" />
+            <span>
+              {fmtShortDate(weekStart)} - {fmtShortDate(weekEnd)}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={goToNextWeek}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white hover:bg-gray-50 active:scale-95"
+            aria-label="Next week"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
       </header>
 

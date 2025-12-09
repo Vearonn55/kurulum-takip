@@ -290,6 +290,7 @@ installationsPage: {
       completed: 'Completed',
       failed: 'Failed',
       cancelled: 'Cancelled',
+      after_sale_service: "After Sale Service"
     },
     zoneLabel: 'Zone (city)',
     allZones: 'All zones',
@@ -305,6 +306,7 @@ installationsPage: {
     completed: 'Completed',
     failed: 'Failed',
     cancelled: 'Cancelled',
+    after_sale_service: "After Sale Service"
   },
 
   table: {
@@ -324,6 +326,7 @@ installationsPage: {
     completed: 'Completed',
     failed: 'Failed',
     cancelled: 'Cancelled',
+    after_sale_service: "After Sale Service"
   },
 
   crew: {
