@@ -180,30 +180,6 @@ export default function CrewShell() {
           })}
         </nav>
       </div>
-
-      {/* User info overlay (for settings/logout) */}
-      {location.pathname === '/crew/settings' && (
-        <div className="fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 border">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-              <span className="text-sm font-medium text-primary-600">
-                {user?.name?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">{user?.name}</div>
-              <div className="text-xs text-gray-500">Installation Crew</div>
-            </div>
-            <button
-              onClick={handleLogout}
-              disabled={false}
-              className="text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
